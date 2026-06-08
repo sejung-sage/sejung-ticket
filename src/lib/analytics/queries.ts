@@ -109,7 +109,7 @@ export async function getDaySessions(date: string): Promise<GridSession[]> {
   const { data, error } = await analyticsDb()
     .from("vw_sessions")
     .select(
-      "classroom, class_name, teacher_name, start_min, end_min, student_count, capacity, paid_count, unpaid_count",
+      "classroom, class_name, teacher_name, start_min, end_min, student_count, capacity, paid_count, unpaid_count, absent_count",
     )
     .eq("class_date", date)
     .order("classroom")

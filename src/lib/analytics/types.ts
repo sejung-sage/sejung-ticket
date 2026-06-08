@@ -96,7 +96,8 @@ export type GridSession = {
   start_min: number | null;
   end_min: number | null;
   student_count: number;
-  capacity: number | null; // 강좌 모집정원 (현재 분모)
+  capacity: number | null; // 강좌 모집정원
   paid_count: number;
   unpaid_count: number;
+  absent_count: number; // 결석 수 (출석 = student_count - absent_count)
 };

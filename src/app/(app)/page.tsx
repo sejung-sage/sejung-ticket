@@ -7,7 +7,7 @@ import {
   getKpis,
   getSeatUtil,
 } from "@/lib/analytics/queries";
-import { buildGrid, fillColor, fmtPct } from "@/lib/analytics/grid";
+import { buildGrid, fillColor, fmtPct, TIME_BUCKETS } from "@/lib/analytics/grid";
 
 export const metadata = { title: "강의실 가동률 — 강의실×시간" };
 
@@ -39,7 +39,8 @@ export default async function Page({
     getSeatUtil({ from: date, to: date }),
   ]);
 
-  const grid = buildGrid(rooms, sessions);
+  const isPast = date < today;
+  const grid = buildGrid(rooms, sessions, isPast);
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8">
@@ -50,7 +51,8 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> 대치
           </h1>
           <p className="mt-1 text-base text-zinc-600">
-            강의실 × 시간 — 각 칸 = 학생수/물리정원 · 좌석 충원율 (입시관·학종관 정원 미입력)
+            강의실 × 아침·오후·저녁 — 칸마다 <b>결제</b>(등록/정원)와 <b>출석</b>((등록−결석)/정원).
+            출석은 과거만 · 미래는 빈칸
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -93,59 +95,73 @@ export default async function Page({
         </p>
       ) : (
         <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
-          <div
-            className="grid min-w-max text-sm"
-            style={{
-              gridTemplateColumns: `180px repeat(${grid.hours.length}, minmax(104px, 1fr))`,
-            }}
-          >
+          <div className="grid min-w-max" style={{ gridTemplateColumns: "180px repeat(3, minmax(150px, 1fr))" }}>
             {/* 헤더 행 */}
-            <div className="sticky left-0 z-10 border-b-2 border-zinc-300 bg-zinc-100 px-3 py-3 font-semibold text-zinc-700">
+            <div className="sticky left-0 z-10 border-b-2 border-zinc-300 bg-zinc-100 px-3 py-3 text-base font-semibold text-zinc-700">
               강의실
             </div>
-            {grid.hours.map((h) => (
+            {TIME_BUCKETS.map((b) => (
               <div
-                key={h}
-                className="border-b-2 border-l border-zinc-300 bg-zinc-100 px-2 py-3 text-center text-base font-semibold text-zinc-700 tabular-nums"
+                key={b}
+                className="border-b-2 border-l border-zinc-300 bg-zinc-100 px-2 py-3 text-center text-lg font-bold text-zinc-700"
               >
-                {h}시
+                {b}
               </div>
             ))}
 
             {/* 강의실 행들 */}
             {grid.rows.map((row) => (
               <div key={row.room.classroom} className="contents">
-                <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-2.5">
+                <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-3">
                   <span className="text-base font-semibold text-zinc-900">{row.room.room}</span>
                   <span className="text-xs text-zinc-500">{row.room.building}</span>
                 </div>
-                {row.cells.map((cell, i) => (
-                  <div
-                    key={i}
-                    className={`border-b border-l border-zinc-200 px-1.5 py-2 text-center tabular-nums ${
-                      cell ? fillColor(cell.fill) : "bg-white"
-                    }`}
-                    title={
-                      cell
-                        ? `${row.room.classroom} ${grid.hours[i]}시\n${cell.classNames.join(", ")}\n학생 ${cell.students}/${cell.capacity} · 완납 ${cell.paid} 미납 ${cell.unpaid}`
-                        : undefined
-                    }
-                  >
-                    {cell && (
-                      <>
-                        <div className="text-lg font-bold leading-tight">
-                          {cell.students}/{cell.capacity || "—"}
-                        </div>
-                        <div className="text-sm font-semibold leading-tight">
-                          {fmtPct(cell.fill)}
+                {row.cells.map((cell, i) => {
+                  const attended = cell ? Math.max(0, cell.students - cell.absent) : 0;
+                  return (
+                    <div
+                      key={i}
+                      className={`border-b border-l border-zinc-200 px-2 py-2 ${
+                        cell ? fillColor(cell.paidFill) : "bg-white"
+                      }`}
+                      title={
+                        cell
+                          ? `${row.room.classroom} ${TIME_BUCKETS[i]}\n${cell.classNames.join(", ")}\n등록 ${cell.students}/${cell.capacity} · 결석 ${cell.absent} · 미납 ${cell.unpaid}`
+                          : undefined
+                      }
+                    >
+                      {cell && (
+                        <div className="flex flex-col gap-1 tabular-nums">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs opacity-80">결제</span>
+                            <span>
+                              <b className="text-base">{cell.students}/{cell.capacity || "—"}</b>
+                              <b className="ml-1 text-sm">{fmtPct(cell.paidFill)}</b>
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between border-t border-black/10 pt-1">
+                            <span className="text-xs opacity-80">출석</span>
+                            <span>
+                              {grid.isPast ? (
+                                <>
+                                  <b className="text-base">{attended}/{cell.capacity || "—"}</b>
+                                  <b className="ml-1 text-sm">{fmtPct(cell.attendFill)}</b>
+                                </>
+                              ) : (
+                                <span className="text-sm opacity-70">— 미래</span>
+                              )}
+                            </span>
+                          </div>
                           {cell.unpaid > 0 && (
-                            <span className="ml-1 rounded bg-black/20 px-1 text-xs">미납 {cell.unpaid}</span>
+                            <div className="text-right text-xs">
+                              <span className="rounded bg-black/15 px-1">미납 {cell.unpaid}</span>
+                            </div>
                           )}
                         </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -153,8 +169,8 @@ export default async function Page({
       )}
 
       <p className="mt-3 text-sm text-zinc-500">
-        강의실 {grid.totals.rooms}개 · 한 칸은 그 시간대에 열린 세션 합산. 시간 미파싱 세션은
-        시간축에 배치되지 않음(요약엔 포함).
+        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=결제 충원율 · 출석=등록−결석(대치는
+        결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
       </p>
     </main>
   );

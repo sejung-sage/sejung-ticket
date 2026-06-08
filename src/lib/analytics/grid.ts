@@ -1,119 +1,91 @@
-// 강의실×시간 그리드 구성용 순수 함수 (서버/클라이언트 무관, 테스트 가능).
+// 강의실 × 3타임(아침/오후/저녁) 그리드 구성용 순수 함수.
 import type { GridRoom, GridSession } from "./types";
 
-/** (강의실, 시각) 한 칸 = 그 시간대에 활성인 세션들의 합산. */
-export type GridCell = {
-  students: number;
-  capacity: number; // 강의실 물리 정원(상수). dim_classroom 미입력이면 0
-  paid: number;
-  unpaid: number;
-  fill: number | null; // students / 물리정원 (정원 미입력이면 null)
-  sessions: number; // 칸에 겹친 세션 수
-  classNames: string[];
-};
+export const TIME_BUCKETS = ["아침", "오후", "저녁"] as const;
 
-export type RoomRow = {
-  room: GridRoom;
-  cells: (GridCell | null)[]; // hours 길이와 동일, 없으면 null
-  dayStudents: number; // 그날 이 강의실 총 학생(세션 합)
-  daySessions: number;
-};
-
-export type GridModel = {
-  hours: number[]; // 가로축 시각(정수 시). 예: [9,10,…,22]
-  rows: RoomRow[];
-  totals: { sessions: number; students: number; rooms: number };
-};
-
-const DEFAULT_OPEN = 9;
-const DEFAULT_CLOSE = 22;
-
-/** 세션들이 점유하는 정수 시 범위에서 가로축 시각 배열을 만든다. */
-function deriveHours(sessions: GridSession[]): number[] {
-  let min = Infinity;
-  let max = -Infinity;
-  for (const s of sessions) {
-    if (s.start_min == null || s.end_min == null) continue;
-    min = Math.min(min, Math.floor(s.start_min / 60));
-    max = Math.max(max, Math.ceil(s.end_min / 60));
-  }
-  if (!isFinite(min) || !isFinite(max)) {
-    min = DEFAULT_OPEN;
-    max = DEFAULT_CLOSE;
-  }
-  // 운영시간 기본범위와 합쳐 너무 좁지 않게
-  min = Math.min(min, DEFAULT_OPEN);
-  max = Math.max(max, DEFAULT_CLOSE);
-  const hours: number[] = [];
-  for (let h = min; h < max; h++) hours.push(h);
-  return hours;
+/** 수업 시작 분(分) → 타임 버킷 인덱스. 아침<13시 / 오후13~17시 / 저녁≥17시. */
+function bucketOf(startMin: number | null): number | null {
+  if (startMin == null) return null;
+  if (startMin < 780) return 0; // < 13:00
+  if (startMin < 1020) return 1; // 13:00 ~ 17:00
+  return 2; // ≥ 17:00
 }
 
-export function buildGrid(rooms: GridRoom[], sessions: GridSession[]): GridModel {
-  const hours = deriveHours(sessions);
-  const hourIndex = new Map(hours.map((h, i) => [h, i]));
+/** (강의실 × 타임) 한 칸 = 그 타임에 열린 세션 합산. */
+export type GridCell = {
+  students: number; // 등록(티켓)
+  capacity: number; // 물리 정원(상수)
+  absent: number; // 결석
+  unpaid: number;
+  sessions: number;
+  classNames: string[];
+  paidFill: number | null; // 결제용: 등록/정원
+  attendFill: number | null; // 출석용: (등록-결석)/정원 (과거만, 미래는 null)
+};
 
-  // 강의실별 빈 셀 배열 준비
+export type RoomRow = { room: GridRoom; cells: (GridCell | null)[] };
+
+export type GridModel = {
+  rows: RoomRow[];
+  isPast: boolean; // 과거 날짜면 출석 표시
+  totals: { sessions: number; students: number; absent: number; rooms: number };
+};
+
+export function buildGrid(
+  rooms: GridRoom[],
+  sessions: GridSession[],
+  isPast: boolean,
+): GridModel {
   const rowMap = new Map<string, RoomRow>();
-  for (const room of rooms) {
-    rowMap.set(room.classroom, {
-      room,
-      cells: hours.map(() => null),
-      dayStudents: 0,
-      daySessions: 0,
-    });
-  }
+  for (const room of rooms) rowMap.set(room.classroom, { room, cells: [null, null, null] });
 
   let totalSessions = 0;
   let totalStudents = 0;
+  let totalAbsent = 0;
 
   for (const s of sessions) {
     const row = rowMap.get(s.classroom);
-    if (!row) continue; // dim_classroom에 없는 강의실(이론상 없음)
+    if (!row) continue;
     totalSessions += 1;
     totalStudents += s.student_count;
-    row.dayStudents += s.student_count;
-    row.daySessions += 1;
-    if (s.start_min == null || s.end_min == null) continue; // 미파싱 → 시간축 배치 불가
+    totalAbsent += s.absent_count;
+    const b = bucketOf(s.start_min);
+    if (b == null) continue; // 시간 미파싱 → 버킷 배치 불가
 
-    const from = Math.floor(s.start_min / 60);
-    const to = Math.ceil(s.end_min / 60);
-    for (let h = from; h < to; h++) {
-      const idx = hourIndex.get(h);
-      if (idx == null) continue;
-      const prev = row.cells[idx];
-      const cell: GridCell = prev ?? {
-        students: 0,
-        capacity: 0,
-        paid: 0,
-        unpaid: 0,
-        fill: null,
-        sessions: 0,
-        classNames: [],
-      };
-      const roomCap = row.room.capacity ?? 0; // 물리 정원(상수). 미입력이면 0
-      cell.students += s.student_count;
-      cell.capacity = roomCap;
-      cell.paid += s.paid_count;
-      cell.unpaid += s.unpaid_count;
-      cell.sessions += 1;
-      if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
-      cell.fill = roomCap > 0 ? cell.students / roomCap : null;
-      row.cells[idx] = cell;
-    }
+    const cap = row.room.capacity ?? 0;
+    const cell: GridCell = row.cells[b] ?? {
+      students: 0,
+      capacity: cap,
+      absent: 0,
+      unpaid: 0,
+      sessions: 0,
+      classNames: [],
+      paidFill: null,
+      attendFill: null,
+    };
+    cell.students += s.student_count;
+    cell.absent += s.absent_count;
+    cell.unpaid += s.unpaid_count;
+    cell.sessions += 1;
+    cell.capacity = cap;
+    if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
+    cell.paidFill = cap > 0 ? cell.students / cap : null;
+    cell.attendFill =
+      isPast && cap > 0 ? Math.max(0, cell.students - cell.absent) / cap : null;
+    row.cells[b] = cell;
   }
 
   return {
-    hours,
     rows: [...rowMap.values()],
-    totals: { sessions: totalSessions, students: totalStudents, rooms: rooms.length },
+    isPast,
+    totals: { sessions: totalSessions, students: totalStudents, absent: totalAbsent, rooms: rooms.length },
   };
 }
 
 /** 충원율 → 셀 배경/글자색 (Tailwind 정적 클래스). */
 export function fillColor(fill: number | null): string {
   if (fill == null) return "bg-zinc-100 text-zinc-400";
-  if (fill >= 1.0) return "bg-rose-500 text-white"; // 정원 초과
+  if (fill >= 1.0) return "bg-rose-500 text-white";
   if (fill >= 0.75) return "bg-emerald-600 text-white";
   if (fill >= 0.5) return "bg-emerald-500 text-white";
   if (fill >= 0.25) return "bg-emerald-300 text-emerald-950";
