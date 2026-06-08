@@ -142,7 +142,7 @@ export async function getCourses(search?: string, limit = 100): Promise<Course[]
 /** notAfter(보통 오늘) 이하에서 세션이 있는 가장 최근 날짜 — 그리드 기본값용. */
 export async function getDefaultGridDate(notAfter: string): Promise<string | null> {
   const { data, error } = await analyticsDb()
-    .from("vw_room_daily")
+    .from("mv_room_daily")
     .select("class_date")
     .lte("class_date", notAfter)
     .order("class_date", { ascending: false })
