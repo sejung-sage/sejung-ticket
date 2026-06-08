@@ -3,12 +3,14 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   BuildingUtil,
+  Course,
   DashboardFilters,
   FilterOptions,
   GridRoom,
   GridSession,
   Granularity,
   Kpis,
+  RoomUtil,
   TrendPoint,
 } from "./types";
 
@@ -112,6 +114,28 @@ export async function getDaySessions(date: string): Promise<GridSession[]> {
     .order("classroom")
     .order("start_min");
   if (error) throw new Error(`vw_sessions(일자) 조회 실패: ${error.message}`);
+  return data ?? [];
+}
+
+/** 강의실별 가동률(기간 집계) — /rooms 탭. */
+export async function getRoomUtilization(filters: DashboardFilters = {}): Promise<RoomUtil[]> {
+  const { data, error } = await analyticsDb().rpc("dash_room", {
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_building: filters.building ?? null,
+    p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+  });
+  if (error) throw new Error(`dash_room 실패: ${error.message}`);
+  return data ?? [];
+}
+
+/** 강좌별 관측/배정 강의실 — /assign 탭. */
+export async function getCourses(search?: string, limit = 100): Promise<Course[]> {
+  const { data, error } = await analyticsDb().rpc("dash_courses", {
+    p_search: search && search.trim() ? search.trim() : null,
+    p_limit: limit,
+  });
+  if (error) throw new Error(`dash_courses 실패: ${error.message}`);
   return data ?? [];
 }
 

@@ -10,7 +10,28 @@ export type DashboardFilters = {
   dow?: number[] | null; // 요일 1=월 … 7=일
 };
 
-export type Granularity = "day" | "week";
+export type Granularity = "day" | "week" | "month";
+
+/** dash_room — 강의실별 가동률(기간) */
+export type RoomUtil = {
+  building: string;
+  classroom: string;
+  utilization: number | null;
+  occupied_hours: number;
+  sessions: number;
+  student_sum: number;
+  capacity: number | null;
+  days: number;
+};
+
+/** dash_courses — 강좌별 관측/배정 강의실 */
+export type Course = {
+  class_name: string;
+  observed_classroom: string | null;
+  sessions: number;
+  teacher_name: string | null;
+  assigned_classroom: string | null;
+};
 
 /** dash_kpis — 1행 */
 export type Kpis = {
