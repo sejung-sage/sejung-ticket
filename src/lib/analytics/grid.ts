@@ -4,10 +4,10 @@ import type { GridRoom, GridSession } from "./types";
 /** (강의실, 시각) 한 칸 = 그 시간대에 활성인 세션들의 합산. */
 export type GridCell = {
   students: number;
-  capacity: number; // 합산 분모 (강좌 모집정원 합)
+  capacity: number; // 강의실 물리 정원(상수). dim_classroom 미입력이면 0
   paid: number;
   unpaid: number;
-  fill: number | null; // students / capacity (capacity 0이면 null)
+  fill: number | null; // students / 물리정원 (정원 미입력이면 null)
   sessions: number; // 칸에 겹친 세션 수
   classNames: string[];
 };
@@ -91,13 +91,14 @@ export function buildGrid(rooms: GridRoom[], sessions: GridSession[]): GridModel
         sessions: 0,
         classNames: [],
       };
+      const roomCap = row.room.capacity ?? 0; // 물리 정원(상수). 미입력이면 0
       cell.students += s.student_count;
-      cell.capacity += s.capacity ?? 0;
+      cell.capacity = roomCap;
       cell.paid += s.paid_count;
       cell.unpaid += s.unpaid_count;
       cell.sessions += 1;
       if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
-      cell.fill = cell.capacity > 0 ? cell.students / cell.capacity : null;
+      cell.fill = roomCap > 0 ? cell.students / roomCap : null;
       row.cells[idx] = cell;
     }
   }

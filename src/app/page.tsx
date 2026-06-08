@@ -48,7 +48,7 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> 대치
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            강의실 × 시간 — 각 칸 = 학생수/정원 · 충원율 (분모는 강좌 모집정원)
+            강의실 × 시간 — 각 칸 = 학생수/물리정원 · 좌석 충원율 (입시관·학종관 정원 미입력)
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -67,7 +67,7 @@ export default async function Page({
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
         <Chip label="세션" value={grid.totals.sessions.toLocaleString()} />
         <Chip label="학생(연인원)" value={grid.totals.students.toLocaleString()} />
-        <Chip label="평균 충원율" value={fmtPct(kpis.avg_fill_rate)} hint="학생/정원" />
+        <Chip label="강좌 충원율" value={fmtPct(kpis.avg_fill_rate)} hint="학생/강좌정원" />
         <Chip label="평균 가동률" value={fmtPct(kpis.avg_utilization)} hint="점유/운영시간" />
         <Chip label="미납률" value={fmtPct(kpis.unpaid_rate)} />
       </div>
