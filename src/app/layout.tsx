@@ -12,9 +12,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Supabase(도쿄 ap-northeast-1)와 같은 지역에서 함수 실행 → DB 왕복 지연 최소화
-export const preferredRegion = "hnd1";
-
 export const metadata: Metadata = {
   title: "세정학원 강의실 가동률",
   description: "대치 캠퍼스 강의실 가동률·충원율 대시보드",
