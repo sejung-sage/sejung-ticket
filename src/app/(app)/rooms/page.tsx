@@ -27,6 +27,7 @@ export default async function RoomsPage({
 
   const rows = await getRoomUtilization({ from, to, building });
   const topUtil = rows.reduce((m, r) => Math.max(m, r.utilization ?? 0), 0) || 1;
+  const topAll = rows.reduce((m, r) => Math.max(m, r.utilization_all ?? 0), 0) || 1;
 
   return (
     <main className="px-6 py-8">
@@ -34,7 +35,7 @@ export default async function RoomsPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">강의실별 가동률</h1>
           <p className="mt-1 text-base text-zinc-600">
-            기간 내 강의실별 시간 가동률(점유/운영) · 가동률 높은 순
+            <b>가동일</b> = 수업 있던 날만 분모 · <b>전체</b> = 기간 전체 운영일 분모(빈 날 포함)
           </p>
         </div>
         <FilterBar
@@ -53,7 +54,8 @@ export default async function RoomsPage({
             <tr className="border-b-2 border-zinc-300 bg-zinc-100 text-left text-sm font-medium text-zinc-600">
               <th className="px-4 py-2.5 font-medium">강의실</th>
               <th className="px-4 py-2.5 font-medium">건물</th>
-              <th className="px-4 py-2.5 font-medium">가동률</th>
+              <th className="px-4 py-2.5 font-medium">가동률 (가동일)</th>
+              <th className="px-4 py-2.5 font-medium">가동률 (전체)</th>
               <th className="px-4 py-2.5 text-right font-medium">가동시간</th>
               <th className="px-4 py-2.5 text-right font-medium">세션</th>
               <th className="px-4 py-2.5 text-right font-medium">운영일</th>
@@ -67,13 +69,26 @@ export default async function RoomsPage({
                 <td className="px-4 py-2.5 text-zinc-500">{r.building}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-100">
+                    <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
                       <div
-                        className="h-full rounded-full bg-emerald-500"
+                        className="h-full rounded-full bg-emerald-400"
                         style={{ width: `${((r.utilization ?? 0) / topUtil) * 100}%` }}
                       />
                     </div>
-                    <span className="tabular-nums text-zinc-700">{fmtPct(r.utilization)}</span>
+                    <span className="tabular-nums text-zinc-600">{fmtPct(r.utilization)}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
+                      <div
+                        className="h-full rounded-full bg-emerald-600"
+                        style={{ width: `${((r.utilization_all ?? 0) / topAll) * 100}%` }}
+                      />
+                    </div>
+                    <span className="font-semibold tabular-nums text-zinc-800">
+                      {fmtPct(r.utilization_all)}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{r.occupied_hours}h</td>
@@ -86,7 +101,7 @@ export default async function RoomsPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-zinc-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-zinc-400">
                   해당 기간 데이터가 없습니다.
                 </td>
               </tr>

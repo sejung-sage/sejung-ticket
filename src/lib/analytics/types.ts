@@ -25,7 +25,8 @@ export type SeatUtil = {
 export type RoomUtil = {
   building: string;
   classroom: string;
-  utilization: number | null;
+  utilization: number | null; // 가동된 날 기준: Σ점유/Σ운영
+  utilization_all: number | null; // 전체기준: Σ점유/(전체 운영일×운영시간)
   occupied_hours: number;
   sessions: number;
   student_sum: number;
