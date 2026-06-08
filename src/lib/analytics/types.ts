@@ -46,3 +46,26 @@ export type FilterOptions = {
   min_date: string | null;
   max_date: string | null;
 };
+
+// ── 강의실×시간 그리드 (하루) ─────────────────────────────────────────
+
+/** dim_classroom 한 행 = 그리드 세로축(강의실). */
+export type GridRoom = {
+  classroom: string;
+  building: string;
+  room: string;
+  capacity: number | null; // 물리 정원 (대치는 미입력=null)
+};
+
+/** vw_sessions 한 행 = 특정 날짜·강의실에 열린 1회 수업. */
+export type GridSession = {
+  classroom: string;
+  class_name: string;
+  teacher_name: string | null;
+  start_min: number | null;
+  end_min: number | null;
+  student_count: number;
+  capacity: number | null; // 강좌 모집정원 (현재 분모)
+  paid_count: number;
+  unpaid_count: number;
+};

@@ -5,6 +5,8 @@ import type {
   BuildingUtil,
   DashboardFilters,
   FilterOptions,
+  GridRoom,
+  GridSession,
   Granularity,
   Kpis,
   TrendPoint,
@@ -83,4 +85,44 @@ export async function getBuildingUtilization(
   });
   if (error) throw new Error(`dash_building 실패: ${error.message}`);
   return data ?? [];
+}
+
+// ── 강의실×시간 그리드 (하루) ─────────────────────────────────────────
+
+/** 그리드 세로축: 대치 강의실 목록(정렬순). 그날 비어 있어도 행으로 노출. */
+export async function getDaechiRooms(): Promise<GridRoom[]> {
+  const { data, error } = await analyticsDb()
+    .from("dim_classroom")
+    .select("classroom, building, room, capacity")
+    .eq("branch", "대치")
+    .eq("active", true)
+    .order("sort_order");
+  if (error) throw new Error(`dim_classroom 조회 실패: ${error.message}`);
+  return data ?? [];
+}
+
+/** 특정 날짜의 모든 세션(대치). 하루치라 작음(1000행 캡 안전). */
+export async function getDaySessions(date: string): Promise<GridSession[]> {
+  const { data, error } = await analyticsDb()
+    .from("vw_sessions")
+    .select(
+      "classroom, class_name, teacher_name, start_min, end_min, student_count, capacity, paid_count, unpaid_count",
+    )
+    .eq("class_date", date)
+    .order("classroom")
+    .order("start_min");
+  if (error) throw new Error(`vw_sessions(일자) 조회 실패: ${error.message}`);
+  return data ?? [];
+}
+
+/** notAfter(보통 오늘) 이하에서 세션이 있는 가장 최근 날짜 — 그리드 기본값용. */
+export async function getDefaultGridDate(notAfter: string): Promise<string | null> {
+  const { data, error } = await analyticsDb()
+    .from("vw_room_daily")
+    .select("class_date")
+    .lte("class_date", notAfter)
+    .order("class_date", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(`기본 날짜 조회 실패: ${error.message}`);
+  return data?.[0]?.class_date ?? null;
 }
