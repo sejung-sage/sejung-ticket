@@ -5,6 +5,7 @@ import {
   getDefaultGridDate,
   getFilterOptions,
   getKpis,
+  getSeatUtil,
 } from "@/lib/analytics/queries";
 import { buildGrid, fillColor, fmtPct } from "@/lib/analytics/grid";
 
@@ -31,10 +32,11 @@ export default async function Page({
   const options = await getFilterOptions();
   const date = dateParam ?? (await getDefaultGridDate(today)) ?? options.max_date ?? today;
 
-  const [rooms, sessions, kpis] = await Promise.all([
+  const [rooms, sessions, kpis, seat] = await Promise.all([
     getDaechiRooms(),
     getDaySessions(date),
     getKpis({ from: date, to: date }),
+    getSeatUtil({ from: date, to: date }),
   ]);
 
   const grid = buildGrid(rooms, sessions);
@@ -64,11 +66,12 @@ export default async function Page({
       </div>
 
       {/* 요약 칩 */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Chip label="세션" value={grid.totals.sessions.toLocaleString()} />
         <Chip label="학생(연인원)" value={grid.totals.students.toLocaleString()} />
-        <Chip label="강좌 충원율" value={fmtPct(kpis.avg_fill_rate)} hint="학생/강좌정원" />
-        <Chip label="평균 가동률" value={fmtPct(kpis.avg_utilization)} hint="점유/운영시간" />
+        <Chip label="평균 가동률" value={fmtPct(kpis.avg_utilization)} hint="시간: 점유/운영" />
+        <Chip label="좌석 가동률" value={fmtPct(seat.m1_util)} hint="학생·시간/전체 좌석·시간" />
+        <Chip label="좌석 충원율" value={fmtPct(seat.m2_util)} hint="학생·시간/수업 좌석·시간" />
         <Chip label="미납률" value={fmtPct(kpis.unpaid_rate)} />
       </div>
 

@@ -11,6 +11,7 @@ import type {
   Granularity,
   Kpis,
   RoomUtil,
+  SeatUtil,
   TrendPoint,
 } from "./types";
 
@@ -115,6 +116,20 @@ export async function getDaySessions(date: string): Promise<GridSession[]> {
     .order("start_min");
   if (error) throw new Error(`vw_sessions(일자) 조회 실패: ${error.message}`);
   return data ?? [];
+}
+
+/** 좌석(정원)×시간 가동률 2종 (M1 전체기준 · M2 가동기준). */
+export async function getSeatUtil(filters: DashboardFilters = {}): Promise<SeatUtil> {
+  const { data, error } = await analyticsDb().rpc("dash_seat_util", {
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_building: filters.building ?? null,
+    p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+  });
+  if (error) throw new Error(`dash_seat_util 실패: ${error.message}`);
+  return (
+    data?.[0] ?? { student_min: 0, m1_denom: 0, m2_denom: 0, m1_util: null, m2_util: null }
+  );
 }
 
 /** 강의실별 가동률(기간 집계) — /rooms 탭. */

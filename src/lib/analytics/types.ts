@@ -12,6 +12,15 @@ export type DashboardFilters = {
 
 export type Granularity = "day" | "week" | "month";
 
+/** dash_seat_util — 좌석(정원)×시간 가동률 2종 */
+export type SeatUtil = {
+  student_min: number;
+  m1_denom: number;
+  m2_denom: number;
+  m1_util: number | null; // 전체기준(빈 방 포함): 학생·시간 / 전체 좌석·운영시간
+  m2_util: number | null; // 가동기준: 학생·시간 / 좌석·수업시간
+};
+
 /** dash_room — 강의실별 가동률(기간) */
 export type RoomUtil = {
   building: string;
