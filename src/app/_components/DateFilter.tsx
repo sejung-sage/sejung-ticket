@@ -14,8 +14,9 @@ export function DateFilter({ value, min, max }: { value: string; min?: string; m
   }
 
   function shift(days: number) {
-    const d = new Date(value + "T00:00:00");
-    d.setDate(d.getDate() + days);
+    // UTC 기준으로 계산해야 시간대(KST) 때문에 하루 어긋나는 버그가 안 생김
+    const d = new Date(value + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + days);
     go(d.toISOString().slice(0, 10));
   }
 

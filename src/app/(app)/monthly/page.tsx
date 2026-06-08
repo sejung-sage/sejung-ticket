@@ -79,7 +79,7 @@ export default async function MonthlyPage({
 }
 
 function daysAgo(base: string, n: number) {
-  const d = new Date(base + "T00:00:00");
-  d.setDate(d.getDate() - n);
+  const d = new Date(base + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - n);
   return d.toISOString().slice(0, 10);
 }

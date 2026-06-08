@@ -32,8 +32,40 @@ export function FilterBar({
     start(() => router.push(`${pathname}?${p.toString()}`));
   }
 
+  // 기간 프리셋 (UTC 기준 계산)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const end = max && max < todayStr ? max : todayStr;
+  function monthsBefore(base: string, m: number) {
+    const d = new Date(base + "T00:00:00Z");
+    d.setUTCMonth(d.getUTCMonth() - m);
+    return d.toISOString().slice(0, 10);
+  }
+  const presets: { label: string; from: string; to: string }[] = [
+    { label: "1개월", from: monthsBefore(end, 1), to: end },
+    { label: "3개월", from: monthsBefore(end, 3), to: end },
+    { label: "6개월", from: monthsBefore(end, 6), to: end },
+    ...(min && max ? [{ label: "전체", from: min, to: max }] : []),
+  ];
+  const activePreset = presets.find((p) => p.from === from && p.to === to)?.label;
+
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="flex items-center gap-1">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => update({ from: p.from, to: p.to })}
+            className={`rounded-md border px-2.5 py-1.5 ${
+              activePreset === p.label
+                ? "border-emerald-600 bg-emerald-600 font-medium text-white"
+                : "border-zinc-300 hover:bg-zinc-100"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <span className="mx-1 h-5 w-px bg-zinc-200" />
       <input
         type="date"
         value={from}

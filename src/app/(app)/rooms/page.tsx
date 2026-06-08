@@ -1,4 +1,5 @@
 import { FilterBar } from "@/app/_components/FilterBar";
+import { SortControl } from "@/app/_components/SortControl";
 import { fmtPct } from "@/lib/analytics/grid";
 import { getFilterOptions, getRoomUtilization } from "@/lib/analytics/queries";
 
@@ -6,15 +7,22 @@ export const metadata = { title: "강의실별 가동률" };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 function daysAgo(base: string, n: number) {
-  const d = new Date(base + "T00:00:00");
-  d.setDate(d.getDate() - n);
+  const d = new Date(base + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - n);
   return d.toISOString().slice(0, 10);
 }
+
+const SORT_OPTIONS = [
+  { value: "all_desc", label: "전체 가동률 높은순" },
+  { value: "all_asc", label: "전체 가동률 낮은순 (저활용)" },
+  { value: "used_desc", label: "가동일 가동률 높은순" },
+  { value: "used_asc", label: "가동일 가동률 낮은순" },
+];
 
 export default async function RoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; building?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; building?: string; sort?: string }>;
 }) {
   const sp = await searchParams;
   const options = await getFilterOptions();
@@ -24,8 +32,12 @@ export default async function RoomsPage({
   const to = sp.to || (today <= maxData ? today : maxData);
   const from = sp.from || daysAgo(to, 90);
   const building = sp.building || undefined;
+  const sort = sp.sort || "all_desc";
 
-  const rows = await getRoomUtilization({ from, to, building });
+  const fetched = await getRoomUtilization({ from, to, building });
+  const key = sort.startsWith("all") ? "utilization_all" : "utilization";
+  const dir = sort.endsWith("asc") ? 1 : -1;
+  const rows = [...fetched].sort((a, b) => ((a[key] ?? 0) - (b[key] ?? 0)) * dir);
   const topUtil = rows.reduce((m, r) => Math.max(m, r.utilization ?? 0), 0) || 1;
   const topAll = rows.reduce((m, r) => Math.max(m, r.utilization_all ?? 0), 0) || 1;
 
@@ -38,14 +50,17 @@ export default async function RoomsPage({
             <b>가동일</b> = 수업 있던 날만 분모 · <b>전체</b> = 기간 전체 운영일 분모(빈 날 포함)
           </p>
         </div>
-        <FilterBar
-          from={from}
-          to={to}
-          building={building}
-          buildings={options.buildings}
-          min={options.min_date ?? undefined}
-          max={options.max_date ?? undefined}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterBar
+            from={from}
+            to={to}
+            building={building}
+            buildings={options.buildings}
+            min={options.min_date ?? undefined}
+            max={options.max_date ?? undefined}
+          />
+          <SortControl value={sort} options={SORT_OPTIONS} />
+        </div>
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200">
