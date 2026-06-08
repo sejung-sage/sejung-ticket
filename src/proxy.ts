@@ -2,33 +2,26 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * 운영계 접근 보호 (HTTP Basic Auth).
- * - DASHBOARD_PASSWORD 가 설정된 환경(운영)에서만 인증을 강제한다.
- * - 미설정(로컬/프리뷰)에선 통과 → 개발 편의.
- * 사용자명 기본값 'sejung', 비밀번호는 환경변수로 관리.
+ * 운영계 접근 게이트 (코드 1개 + 쿠키).
+ * - GATE_TOKEN 이 설정된 환경(운영)에서만 게이트를 강제한다. 미설정(로컬)이면 통과.
+ * - 인증 쿠키(gate) 값이 GATE_TOKEN 과 일치하면 통과, 아니면 /gate 로 보낸다.
+ *   (실제 코드 검증/쿠키 발급은 /gate 의 서버 액션에서. 쿠키엔 코드가 아닌 서버 비밀 토큰 저장)
  */
 export function proxy(request: NextRequest) {
-  const password = process.env.DASHBOARD_PASSWORD;
-  if (!password) return NextResponse.next();
+  const token = process.env.GATE_TOKEN;
+  if (!token) return NextResponse.next();
 
-  const user = process.env.DASHBOARD_USER || "sejung";
-  const header = request.headers.get("authorization");
+  const { pathname } = request.nextUrl;
+  if (pathname === "/gate") return NextResponse.next();
 
-  if (header?.startsWith("Basic ")) {
-    const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
-    const sep = decoded.indexOf(":");
-    const u = decoded.slice(0, sep);
-    const p = decoded.slice(sep + 1);
-    if (u === user && p === password) return NextResponse.next();
-  }
+  if (request.cookies.get("gate")?.value === token) return NextResponse.next();
 
-  return new NextResponse("인증이 필요합니다.", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="sejung-ticket", charset="UTF-8"' },
-  });
+  const url = request.nextUrl.clone();
+  url.pathname = "/gate";
+  url.search = "";
+  return NextResponse.redirect(url);
 }
 
 export const config = {
-  // 정적 자산 제외, 나머지 모든 경로 보호
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
