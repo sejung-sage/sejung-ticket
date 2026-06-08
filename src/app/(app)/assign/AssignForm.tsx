@@ -12,7 +12,7 @@ export function AssignForm({ courses, rooms }: { courses: Course[]; rooms: GridR
       <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs text-zinc-500">
+            <tr className="border-b-2 border-zinc-300 bg-zinc-100 text-left text-sm font-medium text-zinc-600">
               <th className="px-4 py-2.5 font-medium">강좌</th>
               <th className="px-4 py-2.5 font-medium">교사</th>
               <th className="px-4 py-2.5 text-right font-medium">세션</th>

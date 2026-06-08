@@ -32,8 +32,8 @@ export default async function RoomsPage({
     <main className="px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">강의실별 가동률</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold tracking-tight">강의실별 가동률</h1>
+          <p className="mt-1 text-base text-zinc-600">
             기간 내 강의실별 시간 가동률(점유/운영) · 가동률 높은 순
           </p>
         </div>
@@ -50,7 +50,7 @@ export default async function RoomsPage({
       <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs text-zinc-500">
+            <tr className="border-b-2 border-zinc-300 bg-zinc-100 text-left text-sm font-medium text-zinc-600">
               <th className="px-4 py-2.5 font-medium">강의실</th>
               <th className="px-4 py-2.5 font-medium">건물</th>
               <th className="px-4 py-2.5 font-medium">가동률</th>

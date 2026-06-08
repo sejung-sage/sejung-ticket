@@ -18,8 +18,8 @@ export default async function AssignPage({
     <main className="px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">강좌–강의실 배정</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold tracking-tight">강좌–강의실 배정</h1>
+          <p className="mt-1 text-base text-zinc-600">
             원천엔 강좌별 강의실이 항상 엮여 있지 않음. 강좌에 강의실을 수동 지정(보정).
             “관측 강의실” = 데이터상 최빈값.
           </p>

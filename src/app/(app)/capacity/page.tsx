@@ -10,8 +10,8 @@ export default async function CapacityPage() {
   return (
     <main className="px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">정원 관리</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold tracking-tight">정원 관리</h1>
+        <p className="mt-1 text-base text-zinc-600">
           강의실 물리 정원(수용인원) 수정. 저장 시 좌석 충원율에 즉시 반영됩니다. · 입력{" "}
           {filled}/{rooms.length}
         </p>

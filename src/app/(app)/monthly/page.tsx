@@ -28,8 +28,8 @@ export default async function MonthlyPage({
     <main className="px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">월별 가동률</h1>
-          <p className="mt-1 text-sm text-zinc-500">월 단위 전체 가동률 추이 (점유/운영시간)</p>
+          <h1 className="text-2xl font-bold tracking-tight">월별 가동률</h1>
+          <p className="mt-1 text-base text-zinc-600">월 단위 전체 가동률 추이 (점유/운영시간)</p>
         </div>
         <FilterBar
           from={from}
@@ -46,20 +46,20 @@ export default async function MonthlyPage({
           const future = p.bucket > today;
           return (
             <div key={p.bucket} className="flex items-center gap-3">
-              <div className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+              <div className="w-20 shrink-0 text-right text-base font-medium tabular-nums text-zinc-700">
                 {ymLabel(p.bucket)}
               </div>
-              <div className="relative h-7 flex-1 overflow-hidden rounded-md bg-zinc-100">
+              <div className="relative h-9 flex-1 overflow-hidden rounded-md bg-zinc-100">
                 <div
                   className={`h-full ${future ? "bg-emerald-300" : "bg-emerald-500"}`}
                   style={{ width: `${((p.utilization ?? 0) / top) * 100}%` }}
                 />
-                <div className="absolute inset-y-0 left-2 flex items-center text-xs font-medium tabular-nums text-zinc-700">
+                <div className="absolute inset-y-0 left-2.5 flex items-center text-base font-bold tabular-nums text-zinc-800">
                   {fmtPct(p.utilization)}
-                  {future && <span className="ml-1 text-zinc-400">(미래)</span>}
+                  {future && <span className="ml-1 text-sm font-normal text-zinc-500">(미래)</span>}
                 </div>
               </div>
-              <div className="w-20 shrink-0 text-right text-xs tabular-nums text-zinc-400">
+              <div className="w-20 shrink-0 text-right text-sm tabular-nums text-zinc-500">
                 {Math.round(p.occupied_min / 60).toLocaleString()}h
               </div>
             </div>
