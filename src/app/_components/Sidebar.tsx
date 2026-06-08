@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/", label: "일별 가동률", icon: "▦" },
   { href: "/rooms", label: "강의실별 가동률", icon: "▥" },
-  { href: "/monthly", label: "월별 가동률", icon: "▤" },
   { href: "/capacity", label: "정원 관리", icon: "⚙" },
   { href: "/assign", label: "강좌–강의실 배정", icon: "⇄" },
 ];
