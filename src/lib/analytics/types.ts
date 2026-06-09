@@ -34,6 +34,19 @@ export type RoomUtil = {
   days: number;
 };
 
+/** dash_room_session — 강의실별 세션 기반 지표(기간) */
+export type RoomSessionUtil = {
+  building: string;
+  classroom: string;
+  operating_sessions: number; // 운영 가능 세션 (평일1·주말3 합)
+  used_sessions: number; // 실제 사용 세션 (평일 1 상한)
+  tickets: number;
+  capacity: number | null;
+  m1: number | null; // 세션 가동률 = 사용/운영
+  m2: number | null; // 세션 내 좌석 충원율 = 티켓/(사용×정원)
+  m3: number | null; // 종합 좌석 충원율 = 티켓/(운영×정원)
+};
+
 
 /** dash_kpis — 1행 */
 export type Kpis = {

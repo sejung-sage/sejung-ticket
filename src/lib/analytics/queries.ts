@@ -9,6 +9,7 @@ import type {
   GridSession,
   Granularity,
   Kpis,
+  RoomSessionUtil,
   RoomUtil,
   SeatUtil,
   TrendPoint,
@@ -140,6 +141,18 @@ export async function getRoomUtilization(filters: DashboardFilters = {}): Promis
     p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
   });
   if (error) throw new Error(`dash_room 실패: ${error.message}`);
+  return data ?? [];
+}
+
+/** 강의실별 세션 지표(기간) — /rooms 탭. */
+export async function getRoomSessionUtil(filters: DashboardFilters = {}): Promise<RoomSessionUtil[]> {
+  const { data, error } = await analyticsDb().rpc("dash_room_session", {
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_building: filters.building ?? null,
+    p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+  });
+  if (error) throw new Error(`dash_room_session 실패: ${error.message}`);
   return data ?? [];
 }
 

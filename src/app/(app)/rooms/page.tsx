@@ -1,7 +1,8 @@
 import { FilterBar } from "@/app/_components/FilterBar";
 import { SortControl } from "@/app/_components/SortControl";
-import { fmtPct } from "@/lib/analytics/grid";
-import { getFilterOptions, getRoomUtilization } from "@/lib/analytics/queries";
+import { fmtPct1 } from "@/lib/analytics/grid";
+import { getFilterOptions, getRoomSessionUtil } from "@/lib/analytics/queries";
+import type { RoomSessionUtil } from "@/lib/analytics/types";
 
 export const metadata = { title: "강의실별 가동률" };
 
@@ -13,10 +14,11 @@ function daysAgo(base: string, n: number) {
 }
 
 const SORT_OPTIONS = [
-  { value: "all_desc", label: "전체 가동률 높은순" },
-  { value: "all_asc", label: "전체 가동률 낮은순 (저활용)" },
-  { value: "used_desc", label: "가동일 가동률 높은순" },
-  { value: "used_asc", label: "가동일 가동률 낮은순" },
+  { value: "m3_desc", label: "종합 충원율 높은순" },
+  { value: "m3_asc", label: "종합 충원율 낮은순 (저활용)" },
+  { value: "m1_desc", label: "세션 가동률 높은순" },
+  { value: "m1_asc", label: "세션 가동률 낮은순" },
+  { value: "m2_desc", label: "세션내 좌석충원 높은순" },
 ];
 
 export default async function RoomsPage({
@@ -32,14 +34,16 @@ export default async function RoomsPage({
   const to = sp.to || (today <= maxData ? today : maxData);
   const from = sp.from || daysAgo(to, 90);
   const building = sp.building || undefined;
-  const sort = sp.sort || "all_desc";
+  const sort = sp.sort || "m3_desc";
 
-  const fetched = await getRoomUtilization({ from, to, building });
-  const key = sort.startsWith("all") ? "utilization_all" : "utilization";
+  const fetched = await getRoomSessionUtil({ from, to, building });
+  const key = (sort.split("_")[0] as "m1" | "m2" | "m3") || "m3";
   const dir = sort.endsWith("asc") ? 1 : -1;
   const rows = [...fetched].sort((a, b) => ((a[key] ?? 0) - (b[key] ?? 0)) * dir);
-  const topUtil = rows.reduce((m, r) => Math.max(m, r.utilization ?? 0), 0) || 1;
-  const topAll = rows.reduce((m, r) => Math.max(m, r.utilization_all ?? 0), 0) || 1;
+  const top = (k: keyof RoomSessionUtil) =>
+    rows.reduce((m, r) => Math.max(m, (r[k] as number) ?? 0), 0) || 1;
+  const topM1 = top("m1");
+  const topM3 = top("m3");
 
   return (
     <main className="px-6 py-8">
@@ -47,30 +51,31 @@ export default async function RoomsPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">강의실별 가동률</h1>
           <p className="mt-1 text-base text-zinc-600">
-            <b>가동일</b> = 수업 있던 날만 분모 · <b>전체</b> = 기간 전체 운영일 분모(빈 날 포함)
+            세션 기준 — 하루 3세션, 운영 세션 <b>평일 1(저녁) · 주말 3</b> (주 11)
           </p>
           <details className="group mt-2">
             <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-sm font-medium text-emerald-700 select-none marker:content-none">
               <span className="transition group-open:rotate-90">▸</span> 표 보는 법
             </summary>
             <dl className="mt-2 max-w-2xl space-y-1 text-sm text-zinc-600">
-              <Def t="강의실 / 건물" d="강의실 이름과 소속 관." />
               <Def
-                t="가동률 (가동일)"
-                d="분모가 '쓴 날만'. 자주 안 써도 쓸 땐 꽉 차면 높음(=밀도). 예: 한 달 중 10일만 쓴 방 → 그 10일 기준 38%."
+                t="세션 가동률"
+                d="사용 세션 ÷ 운영 세션. 운영 세션(평일 저녁 1, 주말 3, 주 11)을 얼마나 채웠나."
               />
               <Def
-                t="가동률 (전체)"
-                d="분모가 '기간 전체 운영일'(빈 날 포함). 자주 써야 높고 놀면 낮음(=활용도). 같은 방을 30일 기준으로 보면 13% → 저활용 강의실 찾기용."
+                t="좌석충원(세션내)"
+                d="티켓 ÷ (사용 세션 × 정원). 수업이 열린 세션에서 좌석이 얼마나 찼나."
               />
               <Def
-                t="↳ 읽는 법"
-                d="가동일 높음 + 전체 낮음 = 가끔만 쓰는 노는 방(재배치 후보). 둘 다 높음 = 매일 알찬 방."
+                t="종합 충원율"
+                d="티켓 ÷ (운영 세션 × 정원) = 세션가동 × 좌석충원. 보유 좌석-세션 중 실제 몇 %가 찼나."
               />
-              <Def t="가동시간" d="기간 동안 그 강의실이 점유된 총 시간(h)." />
-              <Def t="세션" d="기간 동안 그 강의실에서 열린 수업 횟수." />
-              <Def t="운영일" d="그 강의실에 수업이 있었던 날 수." />
-              <Def t="정원" d="물리 수용인원(정원 관리 탭에서 입력)." />
+              <Def t="사용/운영" d="실제 사용 세션 / 운영 가능 세션." />
+              <Def t="티켓 / 정원" d="기간 등록 티켓 합 / 강의실 물리 정원." />
+              <Def
+                t="↳ 보강 등 예외"
+                d="평일 비정규(보강 등) 세션은 가동률에서 제외(평일 사용 세션은 1로 상한). 원천에 '보강' 표시가 없어 자동 분류는 안 됨."
+              />
             </dl>
           </details>
         </div>
@@ -88,16 +93,16 @@ export default async function RoomsPage({
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b-2 border-zinc-300 bg-zinc-100 text-left text-sm font-medium text-zinc-600">
               <th className="px-4 py-2.5 font-medium">강의실</th>
               <th className="px-4 py-2.5 font-medium">건물</th>
-              <th className="px-4 py-2.5 font-medium">가동률 (가동일)</th>
-              <th className="px-4 py-2.5 font-medium">가동률 (전체)</th>
-              <th className="px-4 py-2.5 text-right font-medium">가동시간</th>
-              <th className="px-4 py-2.5 text-right font-medium">세션</th>
-              <th className="px-4 py-2.5 text-right font-medium">운영일</th>
+              <th className="px-4 py-2.5 font-medium">세션 가동률</th>
+              <th className="px-4 py-2.5 text-right font-medium">좌석충원(세션내)</th>
+              <th className="px-4 py-2.5 font-medium">종합 충원율</th>
+              <th className="px-4 py-2.5 text-right font-medium">사용/운영</th>
+              <th className="px-4 py-2.5 text-right font-medium">티켓</th>
               <th className="px-4 py-2.5 text-right font-medium">정원</th>
             </tr>
           </thead>
@@ -107,32 +112,16 @@ export default async function RoomsPage({
                 <td className="px-4 py-2.5 font-medium text-zinc-800">{r.classroom}</td>
                 <td className="px-4 py-2.5 text-zinc-500">{r.building}</td>
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
-                      <div
-                        className="h-full rounded-full bg-emerald-400"
-                        style={{ width: `${((r.utilization ?? 0) / topUtil) * 100}%` }}
-                      />
-                    </div>
-                    <span className="tabular-nums text-zinc-600">{fmtPct(r.utilization)}</span>
-                  </div>
+                  <Bar v={r.m1} top={topM1} className="bg-emerald-400" />
                 </td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{fmtPct1(r.m2)}</td>
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
-                      <div
-                        className="h-full rounded-full bg-emerald-600"
-                        style={{ width: `${((r.utilization_all ?? 0) / topAll) * 100}%` }}
-                      />
-                    </div>
-                    <span className="font-semibold tabular-nums text-zinc-800">
-                      {fmtPct(r.utilization_all)}
-                    </span>
-                  </div>
+                  <Bar v={r.m3} top={topM3} className="bg-emerald-600" bold />
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{r.occupied_hours}h</td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{r.sessions.toLocaleString()}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">{r.days}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
+                  {r.used_sessions}/{r.operating_sessions}
+                </td>
+                <td className="px-4 py-2.5 text-right tabular-nums">{r.tickets.toLocaleString()}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
                   {r.capacity ?? "—"}
                 </td>
@@ -152,6 +141,32 @@ export default async function RoomsPage({
         {from} ~ {to} · 강의실 {rows.length}개
       </p>
     </main>
+  );
+}
+
+function Bar({
+  v,
+  top,
+  className,
+  bold,
+}: {
+  v: number | null;
+  top: number;
+  className: string;
+  bold?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className={`h-full rounded-full ${className}`}
+          style={{ width: `${((v ?? 0) / top) * 100}%` }}
+        />
+      </div>
+      <span className={`tabular-nums ${bold ? "font-semibold text-zinc-800" : "text-zinc-600"}`}>
+        {fmtPct1(v)}
+      </span>
+    </div>
   );
 }
 
