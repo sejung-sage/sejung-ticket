@@ -20,6 +20,17 @@ function dowLabel(dateStr: string) {
   return ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
 }
 
+/** 등록(티켓) 없는 세션의 종류 라벨 (시간표 강좌명에서 추출). */
+function sessionTag(names: string[]): string {
+  const s = names.join(" ");
+  if (s.includes("클리닉")) return "클리닉";
+  if (s.includes("보강")) return "보강";
+  if (s.includes("설명회")) return "설명회";
+  if (s.includes("자료")) return "자료확인";
+  if (/test|테스트/i.test(s)) return "테스트";
+  return "수업";
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -118,7 +129,8 @@ export default async function Page({
         <Legend className="bg-emerald-500 text-white" t="50–75%" />
         <Legend className="bg-emerald-600 text-white" t="75–100%" />
         <Legend className="bg-rose-500 text-white" t="초과" />
-        <Legend className="bg-zinc-100 text-zinc-400" t="없음" />
+        <Legend className="bg-zinc-100 text-zinc-400" t="없음(수업X)" />
+        <Legend className="bg-violet-200" t="클리닉/보강(등록없음)" />
       </div>
 
       {/* 그리드 */}
@@ -156,7 +168,7 @@ export default async function Page({
                     <div
                       key={i}
                       className={`border-b border-l border-zinc-200 px-2 py-2 ${
-                        cell ? fillColor(cell.paidFill) : "bg-white"
+                        cell ? (cell.students === 0 ? "bg-violet-50" : fillColor(cell.paidFill)) : "bg-white"
                       }`}
                       title={
                         cell
@@ -164,7 +176,15 @@ export default async function Page({
                           : undefined
                       }
                     >
-                      {cell && (
+                      {cell && cell.students === 0 && (
+                        <div className="flex flex-col items-center justify-center gap-0.5 py-1.5 text-center">
+                          <span className="rounded bg-violet-200 px-2 py-0.5 text-sm font-bold text-violet-800">
+                            {sessionTag(cell.classNames)}
+                          </span>
+                          <span className="text-xs text-violet-500">등록 없음</span>
+                        </div>
+                      )}
+                      {cell && cell.students > 0 && (
                         <div className="flex flex-col gap-1 tabular-nums">
                           <div className="flex items-baseline justify-between">
                             <span className="text-xs opacity-80">결제</span>
