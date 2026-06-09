@@ -34,14 +34,6 @@ export type RoomUtil = {
   days: number;
 };
 
-/** dash_courses — 강좌별 관측/배정 강의실 */
-export type Course = {
-  class_name: string;
-  observed_classroom: string | null;
-  sessions: number;
-  teacher_name: string | null;
-  assigned_classroom: string | null;
-};
 
 /** dash_kpis — 1행 */
 export type Kpis = {

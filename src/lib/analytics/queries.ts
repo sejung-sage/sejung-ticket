@@ -3,7 +3,6 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   BuildingUtil,
-  Course,
   DashboardFilters,
   FilterOptions,
   GridRoom,
@@ -162,16 +161,6 @@ export async function getTimetableStatus(): Promise<
     map.set(r.source_date, e);
   }
   return [...map.values()].sort((a, b) => b.source_date.localeCompare(a.source_date));
-}
-
-/** 강좌별 관측/배정 강의실 — /assign 탭. */
-export async function getCourses(search?: string, limit = 100): Promise<Course[]> {
-  const { data, error } = await analyticsDb().rpc("dash_courses", {
-    p_search: search && search.trim() ? search.trim() : null,
-    p_limit: limit,
-  });
-  if (error) throw new Error(`dash_courses 실패: ${error.message}`);
-  return data ?? [];
 }
 
 /** notAfter(보통 오늘) 이하에서 세션이 있는 가장 최근 날짜 — 그리드 기본값용. */
