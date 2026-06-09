@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { LoadingOverlay } from "./LoadingOverlay";
+
 /** 날짜 선택 → ?date= 로 이동(서버 재조회). 네이티브 캘린더 사용. */
 export function DateFilter({ value, min, max }: { value: string; min?: string; max?: string }) {
   const router = useRouter();
@@ -21,6 +23,7 @@ export function DateFilter({ value, min, max }: { value: string; min?: string; m
   }
 
   return (
+    <>
     <div className="flex items-center gap-2">
       <button
         onClick={() => shift(-1)}
@@ -47,7 +50,8 @@ export function DateFilter({ value, min, max }: { value: string; min?: string; m
       >
         →
       </button>
-      {pending && <span className="text-xs text-zinc-400">불러오는 중…</span>}
     </div>
+    <LoadingOverlay show={pending} />
+    </>
   );
 }

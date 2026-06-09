@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { LoadingOverlay } from "./LoadingOverlay";
+
 export function SortControl({
   value,
   options,
@@ -23,17 +25,20 @@ export function SortControl({
   }
 
   return (
-    <select
-      value={value}
-      onChange={(e) => set(e.target.value)}
-      disabled={pending}
-      className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <>
+      <select
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        disabled={pending}
+        className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <LoadingOverlay show={pending} />
+    </>
   );
 }

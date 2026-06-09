@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { LoadingOverlay } from "./LoadingOverlay";
+
 /** 기간(from~to) + 건물 필터. 변경 시 현재 경로의 searchParams 갱신. */
 export function FilterBar({
   from,
@@ -49,6 +51,7 @@ export function FilterBar({
   const activePreset = presets.find((p) => p.from === from && p.to === to)?.label;
 
   return (
+    <>
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <div className="flex items-center gap-1">
         {presets.map((p) => (
@@ -95,7 +98,8 @@ export function FilterBar({
           </option>
         ))}
       </select>
-      {pending && <span className="text-xs text-zinc-400">불러오는 중…</span>}
     </div>
+    <LoadingOverlay show={pending} />
+    </>
   );
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+
+import { LoadingOverlay } from "./LoadingOverlay";
 
 /** 주 단위 선택 바: 이전/다음 주 + 날짜로 점프(그 주 월요일로 스냅) + 건물 필터. */
 export function WeekBar({
@@ -20,6 +23,7 @@ export function WeekBar({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [pending, start] = useTransition();
 
   function push(next: Record<string, string | undefined>) {
     const p = new URLSearchParams(params.toString());
@@ -27,7 +31,7 @@ export function WeekBar({
       if (v) p.set(k, v);
       else p.delete(k);
     }
-    router.push(`/rooms?${p.toString()}`);
+    start(() => router.push(`/rooms?${p.toString()}`));
   }
 
   function shift(n: number) {
@@ -41,6 +45,7 @@ export function WeekBar({
   const nextDisabled = max ? weekEnd >= max : false;
 
   return (
+    <>
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center rounded-lg border border-zinc-300 bg-white">
         <button
@@ -85,5 +90,7 @@ export function WeekBar({
         ))}
       </select>
     </div>
+    <LoadingOverlay show={pending} />
+    </>
   );
 }
