@@ -202,7 +202,7 @@ export default async function Page({
                                   <b className="ml-1 text-sm">{fmtPct(cell.attendFill)}</b>
                                 </>
                               ) : (
-                                <span className="text-sm opacity-70">— 미래</span>
+                                <span className="text-sm opacity-70">—</span>
                               )}
                             </span>
                           </div>
