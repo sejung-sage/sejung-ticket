@@ -5,8 +5,8 @@ import {
   getDefaultGridDate,
   getFilterOptions,
   getKpis,
-  getSeatUtil,
   getDayOpSessions,
+  getVacationPeriods,
 } from "@/lib/analytics/queries";
 import { buildGrid, fillColor, fmtPct, fmtPct1, TIME_BUCKETS } from "@/lib/analytics/grid";
 
@@ -44,13 +44,14 @@ export default async function Page({
   const options = await getFilterOptions();
   const date = dateParam ?? (await getDefaultGridDate(today)) ?? options.max_date ?? today;
 
-  const [rooms, sessions, kpis, seat, opPerRoom] = await Promise.all([
+  const [rooms, sessions, kpis, opPerRoom, vacations] = await Promise.all([
     getDaechiRooms(),
     getDaySessions(date),
     getKpis({ from: date, to: date }),
-    getSeatUtil({ from: date, to: date }),
     getDayOpSessions(date),
+    getVacationPeriods(),
   ]);
+  const isVacation = vacations.some((v) => date >= v.from_date && date <= v.to_date);
 
   const isPast = date < today;
   const grid = buildGrid(rooms, sessions, isPast);
@@ -66,6 +67,7 @@ export default async function Page({
     0,
   );
   const opHint = isWeekend ? "주말 3세션" : allBuckets ? "방학 3세션" : "학기중 저녁 1세션";
+  const termLabel = isVacation ? "방학" : "학기중";
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8">
@@ -76,7 +78,7 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> 대치
           </h1>
           <p className="mt-1 text-base text-zinc-600">
-            강의실 × 아침·오후·저녁 — 칸마다 <b>결제</b>(등록/정원)와 <b>출석</b>((등록−결석)/정원).
+            강의실 × 아침·오후·저녁 — 칸마다 <b>가동좌석수</b>(등록/정원)와 <b>출석</b>((등록−결석)/등록).
             출석은 과거만 · 미래는 빈칸
           </p>
         </div>
@@ -86,36 +88,37 @@ export default async function Page({
             min={options.min_date ?? undefined}
             max={options.max_date ?? undefined}
           />
-          <span className="text-sm font-medium text-zinc-600">
+          <span className="flex items-center gap-2 text-sm font-medium text-zinc-600">
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                isVacation ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {isVacation ? "❄ 방학" : "📚 학기중"}
+            </span>
             {date} ({dowLabel(date)}) {date > today && "· ⚠️ 미래 데이터(희박)"}
           </span>
         </div>
       </div>
 
       {/* 요약 칩 */}
-      <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 items-start gap-3 lg:grid-cols-4">
         <Chip
           label="세션 (사용/전체)"
           value={`${usedSessions}/${totalSessions}`}
           hint={opHint}
-          def={`사용 세션 / 운영 가능 세션. 운영 세션 = 강의실 ${grid.totals.rooms}개 × ${opPerRoom}(${allBuckets ? "아침·오후·저녁" : "저녁만"}). 학기중 평일은 저녁 1세션(비저녁=보강 제외), 방학 평일·주말은 3세션. 방학 설정은 '학기/방학 설정' 탭.`}
+          def={`오늘 강의실에서 수업이 열릴 수 있는 시간대(=세션)는 모두 ${totalSessions}개인데, 그중 실제로 쓴 시간대가 ${usedSessions}개라는 뜻입니다. 운영 세션 = 강의실 ${grid.totals.rooms}개 × ${opPerRoom}(${allBuckets ? "아침·오후·저녁 모두" : "저녁만"}). ${termLabel} 기준이며, 학기중 평일은 저녁 1세션(낮에 하는 보강은 제외), 방학·주말은 3세션입니다. 방학 기간은 '학기/방학 설정' 탭에서 지정합니다.`}
         />
         <Chip
-          label="학생(연인원)"
+          label="학생(티켓기준)"
           value={grid.totals.students.toLocaleString()}
-          def="수업별 등록 학생수의 총합(= 티켓수). 한 학생이 N과목 들으면 N으로 셉니다 — 실제 사람 수(실인원)와 다릅니다."
+          def="수업별 등록 학생수의 총합(= 티켓수). 한 학생이 N과목 들으면 N명으로 셉니다 — 실제 사람 수(실인원)와 다릅니다."
         />
         <Chip
           label="평균 가동률"
           value={fmtPct1(kpis.avg_utilization)}
           hint="시간: 점유/운영"
           def="Σ점유시간 ÷ Σ운영시간. 강의실이 운영시간(평일/주말 설정) 중 시간적으로 얼마나 쓰였나. 그날 수업이 있었던 강의실 기준입니다."
-        />
-        <Chip
-          label="좌석 충원율"
-          value={fmtPct1(seat.m2_util)}
-          hint="학생·시간/수업 좌석·시간"
-          def="Σ(학생수×수업시간) ÷ (정원 × 실제 수업시간). 수업이 돌아가는 동안 좌석이 평균 얼마나 찼나. 물리 정원 기준."
         />
         <Chip
           label="미납률"
@@ -190,7 +193,7 @@ export default async function Page({
                       {cell && cell.students > 0 && (
                         <div className="flex flex-col gap-1 tabular-nums">
                           <div className="flex items-baseline justify-between">
-                            <span className="text-xs opacity-80">결제</span>
+                            <span className="text-xs opacity-80">가동좌석수</span>
                             <span>
                               <b className="text-base">{cell.students}/{cell.capacity || "—"}</b>
                               <b className="ml-1 text-sm">{fmtPct(cell.paidFill)}</b>
@@ -201,7 +204,7 @@ export default async function Page({
                             <span>
                               {grid.isPast ? (
                                 <>
-                                  <b className="text-base">{attended}/{cell.capacity || "—"}</b>
+                                  <b className="text-base">{attended}/{cell.students}</b>
                                   <b className="ml-1 text-sm">{fmtPct(cell.attendFill)}</b>
                                 </>
                               ) : (
@@ -226,8 +229,8 @@ export default async function Page({
       )}
 
       <p className="mt-3 text-sm text-zinc-500">
-        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=결제 충원율 · 출석=등록−결석(대치는
-        결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
+        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=가동좌석수(등록/정원) ·
+        출석=(등록−결석)/등록(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
       </p>
     </main>
   );

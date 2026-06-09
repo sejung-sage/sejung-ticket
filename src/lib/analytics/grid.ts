@@ -19,8 +19,8 @@ export type GridCell = {
   unpaid: number;
   sessions: number;
   classNames: string[];
-  paidFill: number | null; // 결제용: 등록/정원
-  attendFill: number | null; // 출석용: (등록-결석)/정원 (과거만, 미래는 null)
+  paidFill: number | null; // 가동좌석수: 등록/정원
+  attendFill: number | null; // 출석률: (등록-결석)/등록 (과거만, 미래는 null)
 };
 
 export type RoomRow = { room: GridRoom; cells: (GridCell | null)[] };
@@ -71,7 +71,9 @@ export function buildGrid(
     if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
     cell.paidFill = cap > 0 ? cell.students / cap : null;
     cell.attendFill =
-      isPast && cap > 0 ? Math.max(0, cell.students - cell.absent) / cap : null;
+      isPast && cell.students > 0
+        ? Math.max(0, cell.students - cell.absent) / cell.students
+        : null;
     row.cells[b] = cell;
   }
 

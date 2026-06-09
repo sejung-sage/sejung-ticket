@@ -1,5 +1,5 @@
-import { FilterBar } from "@/app/_components/FilterBar";
 import { SortControl } from "@/app/_components/SortControl";
+import { WeekBar } from "@/app/_components/WeekBar";
 import { fmtPct1 } from "@/lib/analytics/grid";
 import { getFilterOptions, getRoomSessionUtil } from "@/lib/analytics/queries";
 import type { RoomSessionUtil } from "@/lib/analytics/types";
@@ -7,32 +7,42 @@ import type { RoomSessionUtil } from "@/lib/analytics/types";
 export const metadata = { title: "강의실별 가동률" };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
-function daysAgo(base: string, n: number) {
+function addDays(base: string, n: number) {
   const d = new Date(base + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() - n);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+/** 주어진 날짜가 속한 주의 월요일(YYYY-MM-DD). */
+function mondayOf(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const off = (d.getUTCDay() + 6) % 7; // 월=0 … 일=6
+  d.setUTCDate(d.getUTCDate() - off);
   return d.toISOString().slice(0, 10);
 }
 
 const SORT_OPTIONS = [
   { value: "m3_desc", label: "종합 충원율 높은순" },
   { value: "m3_asc", label: "종합 충원율 낮은순 (저활용)" },
-  { value: "m1_desc", label: "세션 가동률 높은순" },
-  { value: "m1_asc", label: "세션 가동률 낮은순" },
-  { value: "m2_desc", label: "세션내 좌석충원 높은순" },
+  { value: "m1_desc", label: "주간 강의실 가동률 높은순" },
+  { value: "m1_asc", label: "주간 강의실 가동률 낮은순" },
+  { value: "m2_desc", label: "주평균 좌석충원율 높은순" },
 ];
 
 export default async function RoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; building?: string; sort?: string }>;
+  searchParams: Promise<{ week?: string; building?: string; sort?: string }>;
 }) {
   const sp = await searchParams;
   const options = await getFilterOptions();
   const today = todayISO();
   const maxData = options.max_date ?? today;
 
-  const to = sp.to || (today <= maxData ? today : maxData);
-  const from = sp.from || daysAgo(to, 90);
+  // 주 단위: week 파라미터(주 내 아무 날짜)를 그 주 월~일로 스냅.
+  const weekStart = mondayOf(sp.week || (today <= maxData ? today : maxData));
+  const weekEnd = addDays(weekStart, 6);
+  const from = weekStart;
+  const to = weekEnd;
   const building = sp.building || undefined;
   const sort = sp.sort || "m3_desc";
 
@@ -49,9 +59,9 @@ export default async function RoomsPage({
     <main className="px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">강의실별 가동률</h1>
+          <h1 className="text-2xl font-bold tracking-tight">강의실별 가동률 <span className="text-zinc-400">·</span> 주간</h1>
           <p className="mt-1 text-base text-zinc-600">
-            세션 기준 — 하루 3세션, 운영 세션 <b>평일 1(저녁) · 주말 3</b> (주 11)
+            선택한 한 주(월~일) 기준 — 운영 세션 <b>학기중 평일 1(저녁) · 방학 평일 3 · 주말 3</b>
           </p>
           <details className="group mt-2">
             <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-sm font-medium text-emerald-700 select-none marker:content-none">
@@ -59,30 +69,30 @@ export default async function RoomsPage({
             </summary>
             <dl className="mt-2 max-w-2xl space-y-1 text-sm text-zinc-600">
               <Def
-                t="세션 가동률"
-                d="사용 세션 ÷ 운영 세션. 운영 세션(평일 저녁 1, 주말 3, 주 11)을 얼마나 채웠나."
+                t="주간 강의실 가동률"
+                d="그 주에 강의실이 운영 가능한 세션 중 실제로 수업이 열린 비율. 사용 세션 ÷ 운영 세션."
               />
               <Def
-                t="좌석충원(세션내)"
-                d="티켓 ÷ (사용 세션 × 정원). 수업이 열린 세션에서 좌석이 얼마나 찼나."
+                t="주평균 좌석충원율"
+                d="수업이 열린 세션에서 좌석이 평균 얼마나 찼나. 주평균 인원/세션 ÷ 정원."
               />
               <Def
                 t="종합 충원율"
-                d="티켓 ÷ (운영 세션 × 정원) = 세션가동 × 좌석충원. 보유 좌석-세션 중 실제 몇 %가 찼나."
+                d="보유 좌석 중 실제 몇 %가 찼나. = 주간 가동률 × 주평균 좌석충원율. 티켓 ÷ (운영 세션 × 정원)."
               />
-              <Def t="사용/운영" d="실제 사용 세션 / 운영 가능 세션." />
-              <Def t="티켓 / 정원" d="기간 등록 티켓 합 / 강의실 물리 정원." />
+              <Def t="사용/운영" d="그 주 실제 사용 세션 / 운영 가능 세션." />
+              <Def t="주평균 인원/세션" d="그 주 등록 티켓 합 ÷ 사용 세션 = 세션당 평균 학생수(정원과 같은 단위)." />
               <Def
                 t="보강(예외)"
-                d="평일 아침·오후 세션 = 보강으로 간주. 가동률·충원율 계산에서 제외하고 이 칸에 따로 표시(세션수·티켓수). 평일 정규는 저녁만, 주말은 3세션 모두 정규."
+                d="학기중 평일 아침·오후 세션 = 보강으로 간주. 가동률·충원율 계산에서 제외하고 이 칸에 따로 표시(세션수·티켓수). 학기중 평일 정규는 저녁만, 방학 평일·주말은 3세션 모두 정규."
               />
             </dl>
           </details>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <FilterBar
-            from={from}
-            to={to}
+          <WeekBar
+            weekStart={weekStart}
+            weekEnd={weekEnd}
             building={building}
             buildings={options.buildings}
             min={options.min_date ?? undefined}
@@ -98,11 +108,11 @@ export default async function RoomsPage({
             <tr className="border-b-2 border-zinc-300 bg-zinc-100 text-left text-sm font-medium text-zinc-600">
               <th className="px-4 py-2.5 font-medium">강의실</th>
               <th className="px-4 py-2.5 font-medium">건물</th>
-              <th className="px-4 py-2.5 font-medium">세션 가동률</th>
-              <th className="px-4 py-2.5 text-right font-medium">좌석충원(세션내)</th>
+              <th className="px-4 py-2.5 font-medium">주간 강의실 가동률</th>
+              <th className="px-4 py-2.5 text-right font-medium">주평균 좌석충원율</th>
               <th className="px-4 py-2.5 font-medium">종합 충원율</th>
               <th className="px-4 py-2.5 text-right font-medium">사용/운영</th>
-              <th className="px-4 py-2.5 text-right font-medium">티켓</th>
+              <th className="px-4 py-2.5 text-right font-medium">주평균 인원/세션</th>
               <th className="px-4 py-2.5 text-right font-medium">정원</th>
               <th className="px-4 py-2.5 text-right font-medium">보강(예외)</th>
             </tr>
@@ -122,7 +132,9 @@ export default async function RoomsPage({
                 <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
                   {r.used_sessions}/{r.operating_sessions}
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{r.tickets.toLocaleString()}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums">
+                  {r.used_sessions > 0 ? (r.tickets / r.used_sessions).toFixed(1) : "—"}
+                </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
                   {r.capacity ?? "—"}
                 </td>
