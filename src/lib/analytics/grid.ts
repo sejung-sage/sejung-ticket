@@ -95,3 +95,7 @@ export function fillColor(fill: number | null): string {
 
 export const fmtPct = (v: number | null): string =>
   v == null ? "—" : `${Math.round(v * 100)}%`;
+
+/** 소수점 1자리 % (상단 KPI 카드용). */
+export const fmtPct1 = (v: number | null): string =>
+  v == null ? "—" : `${(v * 100).toFixed(1)}%`;

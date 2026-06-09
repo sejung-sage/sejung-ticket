@@ -7,7 +7,7 @@ import {
   getKpis,
   getSeatUtil,
 } from "@/lib/analytics/queries";
-import { buildGrid, fillColor, fmtPct, TIME_BUCKETS } from "@/lib/analytics/grid";
+import { buildGrid, fillColor, fmtPct, fmtPct1, TIME_BUCKETS } from "@/lib/analytics/grid";
 
 export const metadata = { title: "강의실 가동률 — 강의실×시간" };
 
@@ -81,25 +81,25 @@ export default async function Page({
         />
         <Chip
           label="평균 가동률"
-          value={fmtPct(kpis.avg_utilization)}
+          value={fmtPct1(kpis.avg_utilization)}
           hint="시간: 점유/운영"
           def="Σ점유시간 ÷ Σ운영시간. 강의실이 운영시간(평일/주말 설정) 중 시간적으로 얼마나 쓰였나. 그날 수업이 있었던 강의실 기준입니다."
         />
         <Chip
           label="좌석 가동률"
-          value={fmtPct(seat.m1_util)}
+          value={fmtPct1(seat.m1_util)}
           hint="학생·시간/전체 좌석·시간"
           def="Σ(학생수×수업시간) ÷ (전체 강의실 정원 × 전체 운영시간). 보유한 좌석-시간을 얼마나 활용했나. 빈 방·빈 시간까지 포함해서 값이 낮게 나옵니다(공간 최적화 관점)."
         />
         <Chip
           label="좌석 충원율"
-          value={fmtPct(seat.m2_util)}
+          value={fmtPct1(seat.m2_util)}
           hint="학생·시간/수업 좌석·시간"
           def="Σ(학생수×수업시간) ÷ (정원 × 실제 수업시간). 수업이 돌아가는 동안 좌석이 평균 얼마나 찼나. 물리 정원 기준."
         />
         <Chip
           label="미납률"
-          value={fmtPct(kpis.unpaid_rate)}
+          value={fmtPct1(kpis.unpaid_rate)}
           def="미납(결제전) 학생수 ÷ 전체 학생수. 등록했지만 아직 결제 안 한 비율."
         />
       </div>
