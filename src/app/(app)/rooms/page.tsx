@@ -73,8 +73,8 @@ export default async function RoomsPage({
               <Def t="사용/운영" d="실제 사용 세션 / 운영 가능 세션." />
               <Def t="티켓 / 정원" d="기간 등록 티켓 합 / 강의실 물리 정원." />
               <Def
-                t="↳ 보강 등 예외"
-                d="평일 비정규(보강 등) 세션은 가동률에서 제외(평일 사용 세션은 1로 상한). 원천에 '보강' 표시가 없어 자동 분류는 안 됨."
+                t="보강(예외)"
+                d="평일 아침·오후 세션 = 보강으로 간주. 가동률·충원율 계산에서 제외하고 이 칸에 따로 표시(세션수·티켓수). 평일 정규는 저녁만, 주말은 3세션 모두 정규."
               />
             </dl>
           </details>
@@ -104,6 +104,7 @@ export default async function RoomsPage({
               <th className="px-4 py-2.5 text-right font-medium">사용/운영</th>
               <th className="px-4 py-2.5 text-right font-medium">티켓</th>
               <th className="px-4 py-2.5 text-right font-medium">정원</th>
+              <th className="px-4 py-2.5 text-right font-medium">보강(예외)</th>
             </tr>
           </thead>
           <tbody>
@@ -125,11 +126,16 @@ export default async function RoomsPage({
                 <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
                   {r.capacity ?? "—"}
                 </td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-amber-600">
+                  {r.exception_sessions > 0
+                    ? `${r.exception_sessions}세션 · ${r.exception_tickets}티켓`
+                    : "—"}
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-zinc-400">
+                <td colSpan={9} className="px-4 py-10 text-center text-zinc-400">
                   해당 기간 데이터가 없습니다.
                 </td>
               </tr>
