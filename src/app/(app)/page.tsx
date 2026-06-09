@@ -42,6 +42,17 @@ export default async function Page({
   const isPast = date < today;
   const grid = buildGrid(rooms, sessions, isPast);
 
+  // 세션 모델: 운영 세션 = 평일 1(저녁)·주말 3, 강의실 수만큼. 보강(평일 비저녁) 제외.
+  const dow = new Date(date + "T00:00:00Z").getUTCDay(); // 0=일,6=토
+  const isWeekend = dow === 0 || dow === 6;
+  const opPerRoom = isWeekend ? 3 : 1;
+  const totalSessions = grid.totals.rooms * opPerRoom;
+  const usedSessions = grid.rows.reduce(
+    (sum, row) =>
+      sum + (isWeekend ? row.cells.filter(Boolean).length : row.cells[2] ? 1 : 0),
+    0,
+  );
+
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8">
       {/* 헤더 */}
@@ -70,9 +81,10 @@ export default async function Page({
       {/* 요약 칩 */}
       <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Chip
-          label="세션"
-          value={grid.totals.sessions.toLocaleString()}
-          def="그날 대치에서 열린 수업 수. 1세션 = (강의실 × 날짜 × 강좌). 한 강좌가 여러 시간대면 각각 1세션으로 셉니다."
+          label="세션 (사용/전체)"
+          value={`${usedSessions}/${totalSessions}`}
+          hint={isWeekend ? "주말 3세션" : "평일 저녁 1세션"}
+          def={`사용 세션 / 운영 가능 세션. 운영 세션 = 강의실 ${grid.totals.rooms}개 × ${opPerRoom}(${isWeekend ? "주말 아침·오후·저녁" : "평일 저녁만"}). 평일 비저녁(보강)은 제외.`}
         />
         <Chip
           label="학생(연인원)"
