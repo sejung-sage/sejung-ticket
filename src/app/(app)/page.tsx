@@ -80,7 +80,7 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> 대치
           </h1>
           <p className="mt-1 text-base text-zinc-600">
-            강의실 × 아침·오후·저녁 — 칸마다 <b>가동좌석수</b>(등록/정원)와 <b>출석</b>((등록−결석)/등록).
+            강의실 × 아침·오후·저녁 — 칸마다 <b>출석/배정/정원</b>과 <b>출석율</b>(출석/배정)·<b>배정률</b>(배정/정원).
             출석은 과거만 · 미래는 빈칸
           </p>
         </div>
@@ -137,7 +137,7 @@ export default async function Page({
 
       {/* 범례 */}
       <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-medium text-zinc-600">
-        <span>충원율</span>
+        <span>배정률</span>
         <Legend className="bg-emerald-100 text-emerald-800" t="~25%" />
         <Legend className="bg-emerald-300 text-emerald-950" t="25–50%" />
         <Legend className="bg-emerald-500 text-white" t="50–75%" />
@@ -186,7 +186,7 @@ export default async function Page({
                       }`}
                       title={
                         cell
-                          ? `${row.room.classroom} ${TIME_BUCKETS[i]}\n${cell.classNames.join(", ")}\n등록 ${cell.students}/${cell.capacity} · 결석 ${cell.absent} · 미납 ${cell.unpaid}`
+                          ? `${row.room.classroom} ${TIME_BUCKETS[i]}\n${cell.classNames.join(", ")}\n출석 ${attended} / 배정 ${cell.students} / 정원 ${cell.capacity} · 결석 ${cell.absent} · 미납 ${cell.unpaid}`
                           : undefined
                       }
                     >
@@ -200,28 +200,27 @@ export default async function Page({
                       )}
                       {cell && cell.students > 0 && (
                         <div className="flex flex-col gap-1 tabular-nums">
-                          <div className="flex items-baseline justify-between">
-                            <span className="text-xs opacity-80">가동좌석수</span>
-                            <span>
-                              <b className="text-base">{cell.students}/{cell.capacity || "—"}</b>
-                              <b className="ml-1 text-sm">{fmtPct(cell.paidFill)}</b>
-                            </span>
+                          <div className="text-center text-[11px] leading-tight opacity-70">
+                            출석/배정/정원
                           </div>
-                          <div className="flex items-baseline justify-between border-t border-black/10 pt-1">
-                            <span className="text-xs opacity-80">출석</span>
+                          <div className="text-center leading-none">
+                            <b className="text-base">{grid.isPast ? attended : "—"}</b>
+                            <span className="opacity-50"> / </span>
+                            <b className="text-base">{cell.students}</b>
+                            <span className="opacity-50"> / </span>
+                            <b className="text-base">{cell.capacity || "—"}</b>
+                          </div>
+                          <div className="flex items-center justify-center gap-1.5 border-t border-black/10 pt-1 text-xs">
                             <span>
-                              {grid.isPast ? (
-                                <>
-                                  <b className="text-base">{attended}/{cell.students}</b>
-                                  <b className="ml-1 text-sm">{fmtPct(cell.attendFill)}</b>
-                                </>
-                              ) : (
-                                <span className="text-sm opacity-70">—</span>
-                              )}
+                              출석율 <b>{grid.isPast ? fmtPct(cell.attendFill) : "—"}</b>
+                            </span>
+                            <span className="opacity-40">·</span>
+                            <span>
+                              배정률 <b>{fmtPct(cell.paidFill)}</b>
                             </span>
                           </div>
                           {cell.unpaid > 0 && (
-                            <div className="text-right text-xs">
+                            <div className="text-center text-xs">
                               <span className="rounded bg-black/15 px-1">미납 {cell.unpaid}</span>
                             </div>
                           )}
@@ -237,8 +236,8 @@ export default async function Page({
       )}
 
       <p className="mt-3 text-sm text-zinc-500">
-        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=가동좌석수(등록/정원) ·
-        출석=(등록−결석)/등록(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
+        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=배정률(배정/정원) ·
+        출석율=출석/배정, 출석=배정−결석(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
       </p>
     </main>
   );
