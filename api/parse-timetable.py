@@ -1,10 +1,61 @@
 # Vercel Python 서버리스 함수: HWP(시간표) 업로드 → 칸(강의실·교사·시간) JSON
+# 표는 rowspan/colspan 반영 그리드 매핑으로 각 칸의 실제 열(강의실)을 찾는다.
 from http.server import BaseHTTPRequestHandler
 import json, tempfile, os, sys, glob, re, html
+
+TIME_RE = re.compile(r"([ap]?\d{1,2}(?::\d{2})?\s*[.~\-]+\s*\d{1,2}(?::\d{2})?)")
+TEACHER_RE = re.compile(r"([가-힣]{2,4})\s*T")
+
 
 def celltext(c):
     x = re.sub(r"<[^>]+>", " ", c)
     return re.sub(r"\s+", " ", html.unescape(x)).strip()
+
+
+def parse_html(t):
+    out = []
+    for tb in re.findall(r"<table.*?</table>", t, re.S):
+        rows = re.findall(r"<tr.*?</tr>", tb, re.S)
+        if not rows:
+            continue
+        occupied = set()
+        grid = {}
+        ncols = 0
+        for ri, r in enumerate(rows):
+            col = 0
+            for c in re.findall(r"<t[dh][^>]*>.*?</t[dh]>", r, re.S):
+                while (ri, col) in occupied:
+                    col += 1
+                attrs = re.match(r"<t[dh]([^>]*)>", c).group(1)
+                rs = re.search(r'rowspan="(\d+)"', attrs)
+                cs = re.search(r'colspan="(\d+)"', attrs)
+                rs = int(rs.group(1)) if rs else 1
+                cs = int(cs.group(1)) if cs else 1
+                grid[(ri, col)] = celltext(c)
+                for dr in range(rs):
+                    for dc in range(cs):
+                        occupied.add((ri + dr, col + dc))
+                ncols = max(ncols, col + cs)
+                col += cs
+        headers = {col: grid.get((0, col), "") for col in range(ncols)}
+        for (ri, col), txt in grid.items():
+            if ri == 0 or not txt:
+                continue
+            room = headers.get(col, "")
+            if not room:
+                continue
+            teacher = TEACHER_RE.findall(txt)
+            if not teacher:
+                continue
+            time = TIME_RE.findall(txt)
+            out.append({
+                "room_raw": room,
+                "teacher": teacher[0],
+                "time_raw": time[0].replace(" ", "") if time else None,
+                "detail": txt[:120],
+            })
+    return out
+
 
 def parse_hwp(data: bytes):
     d = tempfile.mkdtemp()
@@ -19,28 +70,8 @@ def parse_hwp(data: bytes):
     except SystemExit:
         pass
     xhtml = glob.glob(os.path.join(out, "*.xhtml")) + glob.glob(os.path.join(out, "*.html"))
-    t = open(xhtml[0], encoding="utf-8").read()
-    cells = []
-    for tb in re.findall(r"<table.*?</table>", t, re.S):
-        rows = [re.findall(r"<t[dh].*?</t[dh]>", r, re.S) for r in re.findall(r"<tr.*?</tr>", tb, re.S)]
-        if not rows:
-            continue
-        headers = [celltext(c) for c in rows[0]]
-        for r in rows[1:]:
-            texts = [celltext(c) for c in r]
-            for i, txt in enumerate(texts):
-                if not txt or i >= len(headers) or not headers[i]:
-                    continue
-                teacher = re.findall(r"([가-힣]{2,4})\s*T", txt)
-                time = re.findall(r"([ap]?\d{1,2}(?::\d{2})?\s*[.~\-]+\s*\d{1,2}(?::\d{2})?)", txt)
-                if teacher:
-                    cells.append({
-                        "room_raw": headers[i],
-                        "teacher": teacher[0],
-                        "time_raw": time[0].replace(" ", "") if time else None,
-                        "detail": txt[:120],
-                    })
-    return cells
+    return parse_html(open(xhtml[0], encoding="utf-8").read())
+
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
