@@ -49,6 +49,26 @@ export default async function RoomsPage({
           <p className="mt-1 text-base text-zinc-600">
             <b>가동일</b> = 수업 있던 날만 분모 · <b>전체</b> = 기간 전체 운영일 분모(빈 날 포함)
           </p>
+          <details className="group mt-2">
+            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-sm font-medium text-emerald-700 select-none marker:content-none">
+              <span className="transition group-open:rotate-90">▸</span> 표 보는 법
+            </summary>
+            <dl className="mt-2 max-w-2xl space-y-1 text-sm text-zinc-600">
+              <Def t="강의실 / 건물" d="강의실 이름과 소속 관." />
+              <Def
+                t="가동률 (가동일)"
+                d="수업 있던 날만 기준. Σ점유시간 ÷ (수업한 날 × 운영시간). 쓸 땐 얼마나 알차게 썼나."
+              />
+              <Def
+                t="가동률 (전체)"
+                d="기간 전체 운영일 기준(빈 날 포함). 기간 내내 실제로 얼마나 쓰였나 — 저활용 강의실 찾기용."
+              />
+              <Def t="가동시간" d="기간 동안 그 강의실이 점유된 총 시간(h)." />
+              <Def t="세션" d="기간 동안 그 강의실에서 열린 수업 횟수." />
+              <Def t="운영일" d="그 강의실에 수업이 있었던 날 수." />
+              <Def t="정원" d="물리 수용인원(정원 관리 탭에서 입력)." />
+            </dl>
+          </details>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <FilterBar
@@ -128,5 +148,14 @@ export default async function RoomsPage({
         {from} ~ {to} · 강의실 {rows.length}개
       </p>
     </main>
+  );
+}
+
+function Def({ t, d }: { t: string; d: string }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="w-32 shrink-0 font-semibold text-zinc-800">{t}</dt>
+      <dd className="text-zinc-600">{d}</dd>
+    </div>
   );
 }
