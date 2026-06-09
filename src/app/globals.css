@@ -23,3 +23,21 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* 클릭 가능한 요소 전역 포인터 커서 — Tailwind v4 Preflight는 기본 미적용.
+   필터 버튼·셀렉트·날짜 입력·탭 등 모든 인터랙션에서 포인터 피드백. */
+@layer base {
+  button:not(:disabled),
+  [role="button"],
+  summary,
+  a[href],
+  select,
+  label:has(input:is([type="checkbox"], [type="radio"])),
+  input:is([type="checkbox"], [type="radio"], [type="date"], [type="submit"], [type="button"], [type="reset"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
