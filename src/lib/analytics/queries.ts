@@ -160,20 +160,18 @@ export async function getRoomSessionUtil(filters: DashboardFilters = {}): Promis
 export async function getTimetableStatus(): Promise<
   { source_date: string; weekday: number; cells: number; rooms: number }[]
 > {
-  const { data, error } = await analyticsDb()
-    .from("timetable")
-    .select("source_date, weekday, classroom");
+  // 집계는 서버(RPC)에서 — timetable 행수가 PostgREST 1000행 캡을 넘으면 클라이언트
+  // 집계 시 최근 적재분이 잘려 누락됨.
+  const { data, error } = await analyticsDb().rpc("dash_timetable_status");
   if (error) throw new Error(`timetable 조회 실패: ${error.message}`);
-  const map = new Map<string, { source_date: string; weekday: number; cells: number; rooms: number }>();
-  for (const r of data ?? []) {
-    const e =
-      map.get(r.source_date) ??
-      { source_date: r.source_date, weekday: r.weekday, cells: 0, rooms: 0 };
-    e.cells += 1;
-    if (r.classroom) e.rooms += 1;
-    map.set(r.source_date, e);
-  }
-  return [...map.values()].sort((a, b) => b.source_date.localeCompare(a.source_date));
+  return ((data ?? []) as { source_date: string; weekday: number; cells: number; rooms: number }[]).map(
+    (r) => ({
+      source_date: r.source_date,
+      weekday: r.weekday,
+      cells: Number(r.cells),
+      rooms: Number(r.rooms),
+    }),
+  );
 }
 
 /** 그 날짜의 강의실당 운영 세션 수 (주말 3·방학평일 3·학기중평일 1). */
