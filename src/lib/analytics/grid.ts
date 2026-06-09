@@ -3,12 +3,23 @@ import type { GridRoom, GridSession } from "./types";
 
 export const TIME_BUCKETS = ["아침", "오후", "저녁"] as const;
 
-/** 수업 시작 분(分) → 타임 버킷 인덱스. 아침<13시 / 오후13~17시 / 저녁≥17시. */
-function bucketOf(startMin: number | null): number | null {
-  if (startMin == null) return null;
-  if (startMin < 780) return 0; // < 13:00
-  if (startMin < 1020) return 1; // 13:00 ~ 17:00
-  return 2; // ≥ 17:00
+// 타임 버킷 경계(분): 아침 <13시, 오후 13~17시, 저녁 ≥17시.
+const BUCKET_START = [-Infinity, 780, 1020]; // [아침, 오후, 저녁) 시작
+const BUCKET_END = [780, 1020, Infinity]; //   각 버킷 끝
+
+/**
+ * 수업의 [시작, 끝) 시간이 걸치는 모든 타임 버킷.
+ * 예: p2~10(14:00–22:00)은 오후+저녁 두 칸을 점유 → 시작시각만 보던 기존 버그 수정.
+ * 끝(end) 미상이면 시작 버킷 하나만.
+ */
+function bucketsOf(startMin: number | null, endMin: number | null): number[] {
+  if (startMin == null) return [];
+  const end = endMin == null ? startMin + 1 : endMin;
+  const out: number[] = [];
+  for (let b = 0; b < 3; b++) {
+    if (startMin < BUCKET_END[b] && end > BUCKET_START[b]) out.push(b);
+  }
+  return out;
 }
 
 /** (강의실 × 타임) 한 칸 = 그 타임에 열린 세션 합산. */
@@ -49,32 +60,35 @@ export function buildGrid(
     totalSessions += 1;
     totalStudents += s.student_count;
     totalAbsent += s.absent_count;
-    const b = bucketOf(s.start_min);
-    if (b == null) continue; // 시간 미파싱 → 버킷 배치 불가
+    const buckets = bucketsOf(s.start_min, s.end_min);
+    if (buckets.length === 0) continue; // 시간 미파싱 → 버킷 배치 불가
 
     const cap = row.room.capacity ?? 0;
-    const cell: GridCell = row.cells[b] ?? {
-      students: 0,
-      capacity: cap,
-      absent: 0,
-      unpaid: 0,
-      sessions: 0,
-      classNames: [],
-      paidFill: null,
-      attendFill: null,
-    };
-    cell.students += s.student_count;
-    cell.absent += s.absent_count;
-    cell.unpaid += s.unpaid_count;
-    cell.sessions += 1;
-    cell.capacity = cap;
-    if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
-    cell.paidFill = cap > 0 ? cell.students / cap : null;
-    cell.attendFill =
-      isPast && cell.students > 0
-        ? Math.max(0, cell.students - cell.absent) / cell.students
-        : null;
-    row.cells[b] = cell;
+    // 여러 버킷에 걸치는 수업(예: 14~22시)은 점유하는 모든 칸을 채운다.
+    for (const b of buckets) {
+      const cell: GridCell = row.cells[b] ?? {
+        students: 0,
+        capacity: cap,
+        absent: 0,
+        unpaid: 0,
+        sessions: 0,
+        classNames: [],
+        paidFill: null,
+        attendFill: null,
+      };
+      cell.students += s.student_count;
+      cell.absent += s.absent_count;
+      cell.unpaid += s.unpaid_count;
+      cell.sessions += 1;
+      cell.capacity = cap;
+      if (!cell.classNames.includes(s.class_name)) cell.classNames.push(s.class_name);
+      cell.paidFill = cap > 0 ? cell.students / cap : null;
+      cell.attendFill =
+        isPast && cell.students > 0
+          ? Math.max(0, cell.students - cell.absent) / cell.students
+          : null;
+      row.cells[b] = cell;
+    }
   }
 
   return {
