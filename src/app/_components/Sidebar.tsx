@@ -7,6 +7,7 @@ const NAV = [
   { href: "/", label: "일별 가동률", icon: "▦" },
   { href: "/rooms", label: "강의실별 가동률", icon: "▥" },
   { href: "/capacity", label: "정원 관리", icon: "⚙" },
+  { href: "/term", label: "학기/방학 설정", icon: "❄" },
   { href: "/upload", label: "시간표 업로드", icon: "⬆" },
 ];
 

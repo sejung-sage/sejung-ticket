@@ -6,6 +6,7 @@ import {
   getFilterOptions,
   getKpis,
   getSeatUtil,
+  getDayOpSessions,
 } from "@/lib/analytics/queries";
 import { buildGrid, fillColor, fmtPct, fmtPct1, TIME_BUCKETS } from "@/lib/analytics/grid";
 
@@ -43,26 +44,28 @@ export default async function Page({
   const options = await getFilterOptions();
   const date = dateParam ?? (await getDefaultGridDate(today)) ?? options.max_date ?? today;
 
-  const [rooms, sessions, kpis, seat] = await Promise.all([
+  const [rooms, sessions, kpis, seat, opPerRoom] = await Promise.all([
     getDaechiRooms(),
     getDaySessions(date),
     getKpis({ from: date, to: date }),
     getSeatUtil({ from: date, to: date }),
+    getDayOpSessions(date),
   ]);
 
   const isPast = date < today;
   const grid = buildGrid(rooms, sessions, isPast);
 
-  // 세션 모델: 운영 세션 = 평일 1(저녁)·주말 3, 강의실 수만큼. 보강(평일 비저녁) 제외.
+  // 세션 모델: 운영 세션 = 주말 3·방학평일 3·학기중평일 1(저녁). 학기중 평일 비저녁(보강)은 제외.
   const dow = new Date(date + "T00:00:00Z").getUTCDay(); // 0=일,6=토
   const isWeekend = dow === 0 || dow === 6;
-  const opPerRoom = isWeekend ? 3 : 1;
+  const allBuckets = opPerRoom === 3; // 주말 또는 방학 → 3세션 모두 정규
   const totalSessions = grid.totals.rooms * opPerRoom;
   const usedSessions = grid.rows.reduce(
     (sum, row) =>
-      sum + (isWeekend ? row.cells.filter(Boolean).length : row.cells[2] ? 1 : 0),
+      sum + (allBuckets ? row.cells.filter(Boolean).length : row.cells[2] ? 1 : 0),
     0,
   );
+  const opHint = isWeekend ? "주말 3세션" : allBuckets ? "방학 3세션" : "학기중 저녁 1세션";
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8">
@@ -94,8 +97,8 @@ export default async function Page({
         <Chip
           label="세션 (사용/전체)"
           value={`${usedSessions}/${totalSessions}`}
-          hint={isWeekend ? "주말 3세션" : "평일 저녁 1세션"}
-          def={`사용 세션 / 운영 가능 세션. 운영 세션 = 강의실 ${grid.totals.rooms}개 × ${opPerRoom}(${isWeekend ? "주말 아침·오후·저녁" : "평일 저녁만"}). 평일 비저녁(보강)은 제외.`}
+          hint={opHint}
+          def={`사용 세션 / 운영 가능 세션. 운영 세션 = 강의실 ${grid.totals.rooms}개 × ${opPerRoom}(${allBuckets ? "아침·오후·저녁" : "저녁만"}). 학기중 평일은 저녁 1세션(비저녁=보강 제외), 방학 평일·주말은 3세션. 방학 설정은 '학기/방학 설정' 탭.`}
         />
         <Chip
           label="학생(연인원)"

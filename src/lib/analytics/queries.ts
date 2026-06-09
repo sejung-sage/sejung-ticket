@@ -176,6 +176,25 @@ export async function getTimetableStatus(): Promise<
   return [...map.values()].sort((a, b) => b.source_date.localeCompare(a.source_date));
 }
 
+/** 그 날짜의 강의실당 운영 세션 수 (주말 3·방학평일 3·학기중평일 1). */
+export async function getDayOpSessions(date: string): Promise<number> {
+  const { data, error } = await analyticsDb().rpc("day_op_sessions", { d: date });
+  if (error) throw new Error(`day_op_sessions 실패: ${error.message}`);
+  return (data as number) ?? 1;
+}
+
+/** 방학 기간 목록 — /term 탭. */
+export async function getVacationPeriods(): Promise<
+  { id: number; from_date: string; to_date: string; label: string | null }[]
+> {
+  const { data, error } = await analyticsDb()
+    .from("config_term")
+    .select("id, from_date, to_date, label")
+    .order("from_date", { ascending: false });
+  if (error) throw new Error(`config_term 조회 실패: ${error.message}`);
+  return data ?? [];
+}
+
 /** notAfter(보통 오늘) 이하에서 세션이 있는 가장 최근 날짜 — 그리드 기본값용. */
 export async function getDefaultGridDate(notAfter: string): Promise<string | null> {
   const { data, error } = await analyticsDb()
