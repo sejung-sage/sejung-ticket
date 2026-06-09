@@ -124,7 +124,8 @@ export default async function Page({
       {/* 그리드 */}
       {grid.totals.sessions === 0 ? (
         <p className="mt-10 rounded-lg border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500">
-          {date} 에 집계된 세션이 없습니다. 날짜를 바꿔보세요.
+          {date} 시간표가 업로드되지 않았습니다. 이 대시보드는 <b>시간표 기반</b>이라,
+          시간표를 올린 날짜만 표시됩니다 — <b>시간표 업로드</b> 탭에서 올려주세요.
         </p>
       ) : (
         <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">

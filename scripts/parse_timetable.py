@@ -36,7 +36,7 @@ def parse(path):
                     continue
                 # 칸에 여러 교사(설명회 등)는 첫 정규수업만; 시간 있는 칸 위주
                 teacher = re.findall(r"([가-힣]{2,4})\s*T", txt)
-                time = re.findall(r"([ap]?\d{1,2}(?::\d{2})?\s*[~\-]\s*\d{1,2}(?::\d{2})?)", txt)
+                time = re.findall(r"([ap]?\d{1,2}(?::\d{2})?\s*[.~\-]+\s*\d{1,2}(?::\d{2})?)", txt)
                 if teacher:
                     out.append({
                         "room_raw": headers[i],

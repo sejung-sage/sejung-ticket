@@ -32,7 +32,7 @@ def parse_hwp(data: bytes):
                 if not txt or i >= len(headers) or not headers[i]:
                     continue
                 teacher = re.findall(r"([가-힣]{2,4})\s*T", txt)
-                time = re.findall(r"([ap]?\d{1,2}(?::\d{2})?\s*[~\-]\s*\d{1,2}(?::\d{2})?)", txt)
+                time = re.findall(r"([ap]?\d{1,2}(?::\d{2})?\s*[.~\-]+\s*\d{1,2}(?::\d{2})?)", txt)
                 if teacher:
                     cells.append({
                         "room_raw": headers[i],

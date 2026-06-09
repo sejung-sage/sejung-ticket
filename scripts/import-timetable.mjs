@@ -72,7 +72,7 @@ for (const { orig, nfc } of files) {
       classroom_raw: cell.room_raw,
       classroom,
       teacher: cell.teacher,
-      time_norm: cell.time_raw ? cell.time_raw.replace(/~/g, "-") : null,
+      time_norm: cell.time_raw ? cell.time_raw.replace(/~/g, "-").replace(/\./g, "") : null,
       detail: cell.detail,
     });
   }
