@@ -5,6 +5,7 @@ import {
   getDefaultGridDate,
   getFilterOptions,
   getKpis,
+  getSeatUtil,
   getDayOpSessions,
   getVacationPeriods,
 } from "@/lib/analytics/queries";
@@ -44,10 +45,11 @@ export default async function Page({
   const options = await getFilterOptions();
   const date = dateParam ?? (await getDefaultGridDate(today)) ?? options.max_date ?? today;
 
-  const [rooms, sessions, kpis, opPerRoom, vacations] = await Promise.all([
+  const [rooms, sessions, kpis, seat, opPerRoom, vacations] = await Promise.all([
     getDaechiRooms(),
     getDaySessions(date),
     getKpis({ from: date, to: date }),
+    getSeatUtil({ from: date, to: date }),
     getDayOpSessions(date),
     getVacationPeriods(),
   ]);
@@ -102,7 +104,7 @@ export default async function Page({
       </div>
 
       {/* 요약 칩 */}
-      <div className="mt-5 grid grid-cols-2 items-start gap-3 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Chip
           label="세션 (사용/전체)"
           value={`${usedSessions}/${totalSessions}`}
@@ -119,6 +121,12 @@ export default async function Page({
           value={fmtPct1(kpis.avg_utilization)}
           hint="시간: 점유/운영"
           def="Σ점유시간 ÷ Σ운영시간. 강의실이 운영시간(평일/주말 설정) 중 시간적으로 얼마나 쓰였나. 그날 수업이 있었던 강의실 기준입니다."
+        />
+        <Chip
+          label="좌석 충원율"
+          value={fmtPct1(seat.m2_util)}
+          hint="세션내: 학생/정원"
+          def="Σ(학생수×수업시간) ÷ (정원 × 실제 수업시간). 수업이 실제로 열린 세션에서 좌석이 평균 얼마나 찼나. 물리 정원 기준 — 칸의 가동좌석수를 하루 전체로 묶은 값입니다."
         />
         <Chip
           label="미납률"
