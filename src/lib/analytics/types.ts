@@ -77,6 +77,18 @@ export type BuildingUtil = {
   sessions: number;
 };
 
+/** dash_building_period — 관별 + 기간 3지표(가동률·배정률·출석율) */
+export type BuildingPeriod = {
+  building: string;
+  rooms: number;
+  capacity: number | null;
+  util: number | null; // 가동률 = Σ점유분/Σ운영분
+  seat_fill: number | null; // 배정률 = Σ(학생×시간)/Σ(정원×시간)
+  attend_rate: number | null; // 출석율 = Σ(등록−결석)/Σ등록 (과거만)
+  booked: number; // 총 배정(연인원) = Σ등록
+  sessions: number;
+};
+
 /** dash_filter_options — 필터 드롭다운/기간 */
 export type FilterOptions = {
   buildings: string[];

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
+  BuildingPeriod,
   BuildingUtil,
   DashboardFilters,
   FilterOptions,
@@ -88,6 +89,19 @@ export async function getBuildingUtilization(
   });
   if (error) throw new Error(`dash_building 실패: ${error.message}`);
   return data ?? [];
+}
+
+/** 관별 + 기간 3지표(가동률·배정률·출석율). p_building 지정 시 단일 관만. */
+export async function getBuildingPeriod(
+  filters: DashboardFilters = {},
+): Promise<BuildingPeriod[]> {
+  const { data, error } = await analyticsDb().rpc("dash_building_period", {
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_building: filters.building ?? null,
+  });
+  if (error) throw new Error(`dash_building_period 실패: ${error.message}`);
+  return (data ?? []) as BuildingPeriod[];
 }
 
 // ── 강의실×시간 그리드 (하루) ─────────────────────────────────────────
