@@ -144,6 +144,26 @@ export async function getRoomUtilization(filters: DashboardFilters = {}): Promis
   return data ?? [];
 }
 
+/** 시간표 적재 현황 — 날짜별 칸수/강의실매칭 (업로드 탭). */
+export async function getTimetableStatus(): Promise<
+  { source_date: string; weekday: number; cells: number; rooms: number }[]
+> {
+  const { data, error } = await analyticsDb()
+    .from("timetable")
+    .select("source_date, weekday, classroom");
+  if (error) throw new Error(`timetable 조회 실패: ${error.message}`);
+  const map = new Map<string, { source_date: string; weekday: number; cells: number; rooms: number }>();
+  for (const r of data ?? []) {
+    const e =
+      map.get(r.source_date) ??
+      { source_date: r.source_date, weekday: r.weekday, cells: 0, rooms: 0 };
+    e.cells += 1;
+    if (r.classroom) e.rooms += 1;
+    map.set(r.source_date, e);
+  }
+  return [...map.values()].sort((a, b) => b.source_date.localeCompare(a.source_date));
+}
+
 /** 강좌별 관측/배정 강의실 — /assign 탭. */
 export async function getCourses(search?: string, limit = 100): Promise<Course[]> {
   const { data, error } = await analyticsDb().rpc("dash_courses", {

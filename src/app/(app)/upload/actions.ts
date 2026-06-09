@@ -30,6 +30,7 @@ export async function importParsed(
   const { error: rErr } = await db.rpc("refresh_fill");
   revalidatePath("/");
   revalidatePath("/rooms");
+  revalidatePath("/upload");
 
   return { results, refreshed: !rErr, refreshError: rErr?.message };
 }
