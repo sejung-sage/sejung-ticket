@@ -68,13 +68,40 @@ export default async function Page({
       </div>
 
       {/* 요약 칩 */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Chip label="세션" value={grid.totals.sessions.toLocaleString()} />
-        <Chip label="학생(연인원)" value={grid.totals.students.toLocaleString()} />
-        <Chip label="평균 가동률" value={fmtPct(kpis.avg_utilization)} hint="시간: 점유/운영" />
-        <Chip label="좌석 가동률" value={fmtPct(seat.m1_util)} hint="학생·시간/전체 좌석·시간" />
-        <Chip label="좌석 충원율" value={fmtPct(seat.m2_util)} hint="학생·시간/수업 좌석·시간" />
-        <Chip label="미납률" value={fmtPct(kpis.unpaid_rate)} />
+      <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <Chip
+          label="세션"
+          value={grid.totals.sessions.toLocaleString()}
+          def="그날 대치에서 열린 수업 수. 1세션 = (강의실 × 날짜 × 강좌). 한 강좌가 여러 시간대면 각각 1세션으로 셉니다."
+        />
+        <Chip
+          label="학생(연인원)"
+          value={grid.totals.students.toLocaleString()}
+          def="수업별 등록 학생수의 총합(= 티켓수). 한 학생이 N과목 들으면 N으로 셉니다 — 실제 사람 수(실인원)와 다릅니다."
+        />
+        <Chip
+          label="평균 가동률"
+          value={fmtPct(kpis.avg_utilization)}
+          hint="시간: 점유/운영"
+          def="Σ점유시간 ÷ Σ운영시간. 강의실이 운영시간(평일/주말 설정) 중 시간적으로 얼마나 쓰였나. 그날 수업이 있었던 강의실 기준입니다."
+        />
+        <Chip
+          label="좌석 가동률"
+          value={fmtPct(seat.m1_util)}
+          hint="학생·시간/전체 좌석·시간"
+          def="Σ(학생수×수업시간) ÷ (전체 강의실 정원 × 전체 운영시간). 보유한 좌석-시간을 얼마나 활용했나. 빈 방·빈 시간까지 포함해서 값이 낮게 나옵니다(공간 최적화 관점)."
+        />
+        <Chip
+          label="좌석 충원율"
+          value={fmtPct(seat.m2_util)}
+          hint="학생·시간/수업 좌석·시간"
+          def="Σ(학생수×수업시간) ÷ (정원 × 실제 수업시간). 수업이 돌아가는 동안 좌석이 평균 얼마나 찼나. 물리 정원 기준."
+        />
+        <Chip
+          label="미납률"
+          value={fmtPct(kpis.unpaid_rate)}
+          def="미납(결제전) 학생수 ÷ 전체 학생수. 등록했지만 아직 결제 안 한 비율."
+        />
       </div>
 
       {/* 범례 */}
@@ -176,12 +203,30 @@ export default async function Page({
   );
 }
 
-function Chip({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Chip({
+  label,
+  value,
+  hint,
+  def,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  def?: string;
+}) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+    <div className="flex flex-col rounded-lg border border-zinc-200 bg-white px-4 py-3">
       <div className="text-sm font-medium text-zinc-600">{label}</div>
       <div className="mt-0.5 text-2xl font-bold tabular-nums text-zinc-900">{value}</div>
       {hint && <div className="text-xs text-zinc-500">{hint}</div>}
+      {def && (
+        <details className="group mt-auto pt-1.5">
+          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-emerald-700 select-none marker:content-none">
+            <span className="transition group-open:rotate-90">▸</span> 정의
+          </summary>
+          <p className="mt-1.5 text-xs leading-relaxed text-zinc-600">{def}</p>
+        </details>
+      )}
     </div>
   );
 }
