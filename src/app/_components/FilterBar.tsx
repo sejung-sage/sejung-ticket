@@ -34,21 +34,44 @@ export function FilterBar({
     start(() => router.push(`${pathname}?${p.toString()}`));
   }
 
-  // 기간 프리셋 (UTC 기준 계산)
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const end = max && max < todayStr ? max : todayStr;
-  function monthsBefore(base: string, m: number) {
-    const d = new Date(base + "T00:00:00Z");
-    d.setUTCMonth(d.getUTCMonth() - m);
-    return d.toISOString().slice(0, 10);
+  // 월 단위 계산 (YYYY-MM ↔ 1일/말일). 전부 UTC 기준.
+  const firstDay = (ym: string) => `${ym}-01`;
+  function lastDay(ym: string) {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); // 다음달 0일 = 이번달 말일
   }
+  function ymOffset(ym: string, months: number) {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1 + months, 1)).toISOString().slice(0, 7);
+  }
+
+  const fromMonth = from.slice(0, 7);
+  const toMonth = to.slice(0, 7);
+  const minMonth = min?.slice(0, 7);
+  const maxMonth = max?.slice(0, 7);
+
+  // 기간 프리셋 (최근 데이터 월 기준, 월 단위)
+  const todayMonth = new Date().toISOString().slice(0, 7);
+  const endM = maxMonth && maxMonth < todayMonth ? maxMonth : todayMonth;
   const presets: { label: string; from: string; to: string }[] = [
-    { label: "1개월", from: monthsBefore(end, 1), to: end },
-    { label: "3개월", from: monthsBefore(end, 3), to: end },
-    { label: "6개월", from: monthsBefore(end, 6), to: end },
-    ...(min && max ? [{ label: "전체", from: min, to: max }] : []),
+    { label: "1개월", from: firstDay(endM), to: lastDay(endM) },
+    { label: "3개월", from: firstDay(ymOffset(endM, -2)), to: lastDay(endM) },
+    { label: "6개월", from: firstDay(ymOffset(endM, -5)), to: lastDay(endM) },
+    ...(minMonth && maxMonth
+      ? [{ label: "전체", from: firstDay(minMonth), to: lastDay(maxMonth) }]
+      : []),
   ];
   const activePreset = presets.find((p) => p.from === from && p.to === to)?.label;
+
+  // 시작/종료 월 선택 → 1일~말일로 환산. 역전되면 반대쪽도 맞춰줌.
+  function setFromMonth(ym: string) {
+    if (!ym) return;
+    update(ym > toMonth ? { from: firstDay(ym), to: lastDay(ym) } : { from: firstDay(ym) });
+  }
+  function setToMonth(ym: string) {
+    if (!ym) return;
+    update(ym < fromMonth ? { from: firstDay(ym), to: lastDay(ym) } : { to: lastDay(ym) });
+  }
 
   return (
     <>
@@ -70,20 +93,20 @@ export function FilterBar({
       </div>
       <span className="mx-1 h-5 w-px bg-zinc-200" />
       <input
-        type="date"
-        value={from}
-        min={min}
-        max={max}
-        onChange={(e) => update({ from: e.target.value })}
+        type="month"
+        value={fromMonth}
+        min={minMonth}
+        max={maxMonth}
+        onChange={(e) => setFromMonth(e.target.value)}
         className="rounded-md border border-zinc-300 px-2.5 py-1.5 tabular-nums focus:border-emerald-500 focus:outline-none"
       />
       <span className="text-zinc-400">~</span>
       <input
-        type="date"
-        value={to}
-        min={min}
-        max={max}
-        onChange={(e) => update({ to: e.target.value })}
+        type="month"
+        value={toMonth}
+        min={minMonth}
+        max={maxMonth}
+        onChange={(e) => setToMonth(e.target.value)}
         className="rounded-md border border-zinc-300 px-2.5 py-1.5 tabular-nums focus:border-emerald-500 focus:outline-none"
       />
       <select

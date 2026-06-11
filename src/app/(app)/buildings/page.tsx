@@ -5,10 +5,10 @@ import { BuildingFinanceTable } from "./BuildingFinanceTable";
 export const metadata = { title: "관별 수익성" };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
-function monthsBefore(base: string, m: number) {
-  const d = new Date(base + "T00:00:00Z");
-  d.setUTCMonth(d.getUTCMonth() - m);
-  return d.toISOString().slice(0, 10);
+const firstDay = (ym: string) => `${ym}-01`;
+function lastDay(ym: string) {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 }
 
 export default async function BuildingsPage({
@@ -21,10 +21,10 @@ export default async function BuildingsPage({
   const today = todayISO();
   const maxData = options.max_date ?? today;
 
-  // 기본 기간: 데이터 끝(또는 오늘)에서 최근 1개월.
-  const end = maxData < today ? maxData : today;
-  const to = sp.to || end;
-  const from = sp.from || monthsBefore(to, 1);
+  // 기본 기간: 최근 데이터 월의 1일~말일 (월 단위 기본).
+  const endMonth = (maxData < today ? maxData : today).slice(0, 7);
+  const to = sp.to || lastDay(endMonth);
+  const from = sp.from || firstDay(endMonth);
   const building = sp.building || undefined;
 
   const [rows, leases] = await Promise.all([
