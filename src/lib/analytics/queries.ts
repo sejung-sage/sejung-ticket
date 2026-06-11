@@ -10,6 +10,7 @@ import type {
   GridSession,
   Granularity,
   Kpis,
+  LeaseLine,
   RoomSessionUtil,
   RoomUtil,
   SeatUtil,
@@ -102,6 +103,20 @@ export async function getBuildingPeriod(
   });
   if (error) throw new Error(`dash_building_period 실패: ${error.message}`);
   return (data ?? []) as BuildingPeriod[];
+}
+
+/** 관 안의 계약(층)별 비용 — 드릴다운용. 18행 안팎이라 직접 fetch 안전. */
+export async function getLeaseLines(): Promise<LeaseLine[]> {
+  const { data, error } = await analyticsDb()
+    .from("dim_lease")
+    .select(
+      "building, lease_label, building_name, area_py, rent_monthly, deposit, maintenance, lease_from, lease_to, note",
+    )
+    .eq("branch", "대치")
+    .order("building")
+    .order("sort_order");
+  if (error) throw new Error(`dim_lease 조회 실패: ${error.message}`);
+  return (data ?? []) as LeaseLine[];
 }
 
 // ── 강의실×시간 그리드 (하루) ─────────────────────────────────────────
