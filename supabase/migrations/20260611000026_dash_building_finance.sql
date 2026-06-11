@@ -3,7 +3,7 @@
 --  · 배정률   = Σ(학생×시간) / Σ(정원×시간)   (좌석 배정, 물리정원=우리가 정한 최대정원)
 --  · 출석율   = Σ(등록−결석) / Σ등록          (과거 날짜만)
 --  · 매출     = Σ class_amount_per_session     (회당금액×티켓수, 전체 발생매출·결제/미래 무관)
---  · 임대료   = dim_lease 월임대료 합을 기간 일수로 비례환산(월=30.44일)
+--  · 임대료   = dim_lease 월임대료 합 × 기간 개월수(월 단위; from~to는 1일~말일 정렬)
 --  · 매출배율 = 기간매출 ÷ 기간임대료
 -- 관 목록은 dim_lease 기준(6개 관 전부 노출). 입시관·학종관은 usage 없어 매출/가동률 null.
 drop function if exists analytics.dash_building_period(date, date, text);
@@ -64,9 +64,11 @@ returns table (
       sum(deposit)::bigint as deposit, sum(maintenance)::bigint as maintenance
     from analytics.dim_lease where branch = '대치' group by building
   ),
-  prd as (  -- 기간 일수(둘 다 지정됐을 때만 임대료 비례환산)
+  prd as (  -- 기간 개월수(둘 다 지정됐을 때만; from~to는 1일~말일 정렬이라 정수 개월)
     select case when p_from is not null and p_to is not null
-      then (p_to - p_from + 1)::numeric end as days
+      then ((date_part('year', p_to) * 12 + date_part('month', p_to))
+         - (date_part('year', p_from) * 12 + date_part('month', p_from)) + 1)::int
+      end as months
   )
   select bld.building, rd.rooms, cap.cap,
     round(rd.occ::numeric / nullif(rd.opn, 0), 4) as util,
@@ -76,9 +78,9 @@ returns table (
     coalesce(rd.sess, 0)::bigint as sessions,
     rev.revenue,
     lease.area_py, lease.rent_monthly, lease.deposit, lease.maintenance,
-    round(lease.rent_monthly * (select days from prd) / 30.44)::bigint as rent_period,
+    (lease.rent_monthly * (select months from prd))::bigint as rent_period,
     round(rev.revenue::numeric
-          / nullif(round(lease.rent_monthly * (select days from prd) / 30.44), 0), 2) as rev_per_rent
+          / nullif(lease.rent_monthly * (select months from prd), 0), 2) as rev_per_rent
   from bld
   left join rd    on rd.building    = bld.building
   left join att   on att.building   = bld.building

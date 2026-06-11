@@ -22,9 +22,10 @@ export default async function BuildingsPage({
   const maxData = options.max_date ?? today;
 
   // 기본 기간: 최근 데이터 월의 1일~말일 (월 단위 기본).
+  // 들어온 from/to는 항상 해당 월 1일~말일로 스냅 — 옛(일 단위) URL이 남아 있어도 풀먼스로 정규화.
   const endMonth = (maxData < today ? maxData : today).slice(0, 7);
-  const to = sp.to || lastDay(endMonth);
-  const from = sp.from || firstDay(endMonth);
+  const to = lastDay((sp.to || lastDay(endMonth)).slice(0, 7));
+  const from = firstDay((sp.from || firstDay(endMonth)).slice(0, 7));
   const building = sp.building || undefined;
 
   const [rows, leases] = await Promise.all([

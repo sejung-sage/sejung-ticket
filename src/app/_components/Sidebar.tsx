@@ -1,7 +1,16 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+
+import { LoadingOverlay } from "./LoadingOverlay";
+
+/** 클릭한 Link의 이동 대기 상태에 맞춰 전체 화면 오버레이를 띄운다.
+ *  prefetch={false}여야 동적(DB) 페이지에서 pending이 확실히 잡힌다. */
+function NavLoading() {
+  const { pending } = useLinkStatus();
+  return <LoadingOverlay show={pending} />;
+}
 
 const NAV = [
   { href: "/", label: "일별 가동률", icon: "▦" },
@@ -29,6 +38,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-3 text-base transition ${
                 active
                   ? "bg-emerald-600 font-semibold text-white"
@@ -37,6 +47,7 @@ export function Sidebar() {
             >
               <span className="opacity-70">{item.icon}</span>
               {item.label}
+              <NavLoading />
             </Link>
           );
         })}
