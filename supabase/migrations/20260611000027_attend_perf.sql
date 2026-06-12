@@ -128,9 +128,11 @@ returns table (
       sum(deposit)::bigint as deposit, sum(maintenance)::bigint as maintenance
     from analytics.dim_lease where branch = '대치' group by building
   ),
-  prd as (
+  prd as (  -- 기간 개월수(둘 다 지정됐을 때만; from~to는 1일~말일 정렬이라 정수 개월)
     select case when p_from is not null and p_to is not null
-      then (p_to - p_from + 1)::numeric end as days
+      then ((date_part('year', p_to) * 12 + date_part('month', p_to))
+         - (date_part('year', p_from) * 12 + date_part('month', p_from)) + 1)::int
+      end as months
   )
   select bld.building, rd.rooms, cap.cap,
     round(rd.occ::numeric / nullif(rd.opn, 0), 4) as util,
@@ -140,9 +142,9 @@ returns table (
     coalesce(rd.sess, 0)::bigint as sessions,
     rev.revenue,
     lease.area_py, lease.rent_monthly, lease.deposit, lease.maintenance,
-    round(lease.rent_monthly * (select days from prd) / 30.44)::bigint as rent_period,
+    (lease.rent_monthly * (select months from prd))::bigint as rent_period,
     round(rev.revenue::numeric
-          / nullif(round(lease.rent_monthly * (select days from prd) / 30.44), 0), 2) as rev_per_rent
+          / nullif(lease.rent_monthly * (select months from prd), 0), 2) as rev_per_rent
   from bld
   left join rd    on rd.building    = bld.building
   left join att   on att.building   = bld.building
