@@ -14,11 +14,19 @@ function won(v: number | null): string {
 }
 const wonTitle = (v: number | null) => (v == null ? "" : `${v.toLocaleString()}원`);
 
-/** 매출/임대료 배율 → 색상 배지. */
-function ratioClass(v: number | null): string {
+/** 정원당 매출 = 매출 ÷ 총정원 (좌석 1개가 버는 기간 매출). */
+function perSeatRevenue(r: BuildingPeriod): number | null {
+  return r.revenue != null && r.capacity ? Math.round(r.revenue / r.capacity) : null;
+}
+/** 임대/매출 = 기간 임대료 ÷ 기간 매출 (매출에서 임대료가 차지하는 비중). 낮을수록 좋음. */
+function rentShare(r: BuildingPeriod): number | null {
+  return r.rent_period != null && r.revenue ? r.rent_period / r.revenue : null;
+}
+/** 임대/매출 비중 → 색상 배지. 낮을수록(임대료 부담 적을수록) 좋음. */
+function rentShareClass(v: number | null): string {
   if (v == null) return "bg-zinc-100 text-zinc-400";
-  if (v >= 2) return "bg-emerald-100 text-emerald-700";
-  if (v >= 1) return "bg-amber-100 text-amber-700";
+  if (v <= 0.25) return "bg-emerald-100 text-emerald-700";
+  if (v <= 0.5) return "bg-amber-100 text-amber-700";
   return "bg-rose-100 text-rose-700";
 }
 
@@ -57,11 +65,12 @@ export function BuildingFinanceTable({
             <th className="px-4 py-2.5 text-right font-medium">정원</th>
             <th className="px-4 py-2.5 text-right font-medium">평</th>
             <th className="px-4 py-2.5 font-medium">가동률</th>
-            <th className="px-4 py-2.5 font-medium">배정률</th>
+            <th className="px-4 py-2.5 font-medium">좌석 점유율</th>
             <th className="px-4 py-2.5 font-medium">출석율</th>
             <th className="px-4 py-2.5 text-right font-medium">매출</th>
-            <th className="px-4 py-2.5 text-right font-medium">임대료(기간)</th>
-            <th className="px-4 py-2.5 text-center font-medium">매출/임대</th>
+            <th className="px-4 py-2.5 text-right font-medium">정원당 매출</th>
+            <th className="px-4 py-2.5 text-right font-medium">임대료</th>
+            <th className="px-4 py-2.5 text-center font-medium">임대/매출</th>
           </tr>
         </thead>
         <tbody>
@@ -111,6 +120,12 @@ export function BuildingFinanceTable({
                     {won(r.revenue)}
                   </td>
                   <td
+                    className="px-4 py-2.5 text-right tabular-nums text-zinc-700"
+                    title={wonTitle(perSeatRevenue(r))}
+                  >
+                    {won(perSeatRevenue(r))}
+                  </td>
+                  <td
                     className="px-4 py-2.5 text-right tabular-nums text-zinc-600"
                     title={wonTitle(r.rent_period)}
                   >
@@ -118,15 +133,15 @@ export function BuildingFinanceTable({
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${ratioClass(r.rev_per_rent)}`}
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${rentShareClass(rentShare(r))}`}
                     >
-                      {r.rev_per_rent == null ? "—" : `${r.rev_per_rent.toFixed(2)}×`}
+                      {rentShare(r) == null ? "—" : fmtPct1(rentShare(r))}
                     </span>
                   </td>
                 </tr>
                 {isOpen && lines.length > 0 && (
                   <tr className="border-b border-zinc-100 bg-zinc-50/40">
-                    <td colSpan={10} className="px-4 py-3">
+                    <td colSpan={11} className="px-4 py-3">
                       <LeaseDetail lines={lines} />
                     </td>
                   </tr>
@@ -136,7 +151,7 @@ export function BuildingFinanceTable({
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={10} className="px-4 py-10 text-center text-zinc-400">
+              <td colSpan={11} className="px-4 py-10 text-center text-zinc-400">
                 해당 기간 데이터가 없습니다.
               </td>
             </tr>
@@ -144,8 +159,9 @@ export function BuildingFinanceTable({
         </tbody>
       </table>
       <p className="px-4 py-2 text-xs text-zinc-400">
-        {period.from} ~ {period.to} · 매출 = 강좌 회당금액 × 티켓수(전체 발생매출) · 임대료 = 월
-        임대료를 기간 일수로 환산 · 관 행을 누르면 계약(층)별 비용이 펼쳐집니다.
+        {period.from} ~ {period.to} · 매출 = 강좌 회당금액 × 티켓수(전체 발생매출) · 정원당 매출 = 매출 ÷
+        총정원 · 임대료 = 월 임대료 × 기간 개월수 · 임대/매출 = 임대료 ÷ 매출 · 관 행을 누르면 계약(층)별
+        비용이 펼쳐집니다.
       </p>
     </div>
   );

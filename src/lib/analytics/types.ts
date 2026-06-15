@@ -83,17 +83,25 @@ export type BuildingPeriod = {
   rooms: number | null;
   capacity: number | null;
   util: number | null; // 가동률 = Σ점유분/Σ운영분
-  seat_fill: number | null; // 배정률 = Σ(학생×시간)/Σ(정원×시간)
+  seat_fill: number | null; // 좌석 점유율 = Σ(등록×시간)/Σ(정원×시간)
   attend_rate: number | null; // 출석율 = Σ(등록−결석)/Σ등록 (과거만)
-  booked: number; // 총 배정(연인원) = Σ등록
+  booked: number; // 총 등록(연인원) = Σ등록
   sessions: number;
   revenue: number | null; // 매출 = Σ 회당금액 (전체 발생매출). usage 없는 관은 null
   area_py: number | null; // 임차 면적(평) 합
   rent_monthly: number | null; // 월 임대료(VAT포함) 합
   deposit: number | null; // 보증금 합
   maintenance: number | null; // 관리비 합
-  rent_period: number | null; // 임대료 기간환산(월×기간일수/30.44)
+  rent_period: number | null; // 임대료 = 월 임대료 × 기간 개월수
   rev_per_rent: number | null; // 매출 ÷ 기간임대료
+};
+
+/** dash_building_trend — 관별 × 월별 추이(가동률·좌석 점유율) */
+export type BuildingTrend = {
+  building: string;
+  month: string; // YYYY-MM
+  util: number | null; // 가동률
+  seat_fill: number | null; // 좌석 점유율
 };
 
 /** dim_lease — 관 안의 계약(층)별 비용 (드릴다운용) */

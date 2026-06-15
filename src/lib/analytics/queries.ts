@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   BuildingPeriod,
+  BuildingTrend,
   BuildingUtil,
   DashboardFilters,
   FilterOptions,
@@ -103,6 +104,18 @@ export async function getBuildingPeriod(
   });
   if (error) throw new Error(`dash_building_period 실패: ${error.message}`);
   return (data ?? []) as BuildingPeriod[];
+}
+
+/** 관별 × 월별 추이(가동률·좌석 점유율). 가동률 추이 차트용. */
+export async function getBuildingTrend(
+  filters: DashboardFilters = {},
+): Promise<BuildingTrend[]> {
+  const { data, error } = await analyticsDb().rpc("dash_building_trend", {
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+  });
+  if (error) throw new Error(`dash_building_trend 실패: ${error.message}`);
+  return (data ?? []) as BuildingTrend[];
 }
 
 /** 관 안의 계약(층)별 비용 — 드릴다운용. 18행 안팎이라 직접 fetch 안전. */

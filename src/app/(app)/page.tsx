@@ -80,7 +80,7 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> 대치
           </h1>
           <p className="mt-1 text-base text-zinc-600">
-            강의실 × 아침·오후·저녁 — 칸마다 <b>출석/배정/정원</b>과 <b>출석율</b>(출석/배정)·<b>배정률</b>(배정/정원).
+            강의실 × 아침·오후·저녁 — 칸마다 <b>출석/등록/정원</b>과 <b>출석율</b>(출석/등록)·<b>좌석 점유율</b>(등록/정원).
             출석은 과거만 · 미래는 빈칸
           </p>
         </div>
@@ -104,7 +104,7 @@ export default async function Page({
       </div>
 
       {/* 요약 칩 */}
-      <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Chip
           label="세션 (사용/전체)"
           value={`${usedSessions}/${totalSessions}`}
@@ -128,16 +128,11 @@ export default async function Page({
           hint="세션내: 학생/정원"
           def="Σ(학생수×수업시간) ÷ (정원 × 실제 수업시간). 수업이 실제로 열린 세션에서 좌석이 평균 얼마나 찼나. 물리 정원 기준 — 칸의 가동좌석수를 하루 전체로 묶은 값입니다."
         />
-        <Chip
-          label="미납률"
-          value={fmtPct1(kpis.unpaid_rate)}
-          def="미납(결제전) 학생수 ÷ 전체 학생수. 등록했지만 아직 결제 안 한 비율."
-        />
       </div>
 
       {/* 범례 */}
       <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-medium text-zinc-600">
-        <span>배정률</span>
+        <span>좌석 점유율</span>
         <Legend className="bg-emerald-100 text-emerald-800" t="~25%" />
         <Legend className="bg-emerald-300 text-emerald-950" t="25–50%" />
         <Legend className="bg-emerald-500 text-white" t="50–75%" />
@@ -186,7 +181,7 @@ export default async function Page({
                       }`}
                       title={
                         cell
-                          ? `${row.room.classroom} ${TIME_BUCKETS[i]}\n${cell.classNames.join(", ")}\n출석 ${attended} / 배정 ${cell.students} / 정원 ${cell.capacity} · 결석 ${cell.absent} · 미납 ${cell.unpaid}`
+                          ? `${row.room.classroom} ${TIME_BUCKETS[i]}\n${cell.classNames.join(", ")}\n출석 ${attended} / 등록 ${cell.students} / 정원 ${cell.capacity} · 결석 ${cell.absent}`
                           : undefined
                       }
                     >
@@ -201,7 +196,7 @@ export default async function Page({
                       {cell && cell.students > 0 && (
                         <div className="flex flex-col gap-1 tabular-nums">
                           <div className="text-center text-[11px] leading-tight opacity-70">
-                            출석/배정/정원
+                            출석/등록/정원
                           </div>
                           <div className="text-center leading-none">
                             <b className="text-base">{grid.isPast ? attended : "—"}</b>
@@ -216,14 +211,9 @@ export default async function Page({
                             </span>
                             <span className="opacity-40">·</span>
                             <span>
-                              배정률 <b>{fmtPct(cell.paidFill)}</b>
+                              좌석 점유율 <b>{fmtPct(cell.paidFill)}</b>
                             </span>
                           </div>
-                          {cell.unpaid > 0 && (
-                            <div className="text-center text-xs">
-                              <span className="rounded bg-black/15 px-1">미납 {cell.unpaid}</span>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
@@ -236,8 +226,8 @@ export default async function Page({
       )}
 
       <p className="mt-3 text-sm text-zinc-500">
-        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=배정률(배정/정원) ·
-        출석율=출석/배정, 출석=배정−결석(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
+        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=좌석 점유율(등록/정원) ·
+        출석율=출석/등록, 출석=등록−결석(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
       </p>
     </main>
   );
