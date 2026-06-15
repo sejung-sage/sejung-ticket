@@ -25,7 +25,7 @@ const SORT_OPTIONS = [
   { value: "m3_asc", label: "종합 충원율 낮은순 (저활용)" },
   { value: "m1_desc", label: "주간 강의실 가동률 높은순" },
   { value: "m1_asc", label: "주간 강의실 가동률 낮은순" },
-  { value: "m2_desc", label: "주평균 좌석충원율 높은순" },
+  { value: "m2_desc", label: "주평균 좌석 점유율 높은순" },
 ];
 
 export default async function RoomsPage({
@@ -73,12 +73,12 @@ export default async function RoomsPage({
                 d="그 주에 강의실이 운영 가능한 세션 중 실제로 수업이 열린 비율. 사용 세션 ÷ 운영 세션."
               />
               <Def
-                t="주평균 좌석충원율"
+                t="주평균 좌석 점유율"
                 d="수업이 열린 세션에서 좌석이 평균 얼마나 찼나. 주평균 인원/세션 ÷ 정원."
               />
               <Def
                 t="종합 충원율"
-                d="보유 좌석 중 실제 몇 %가 찼나. = 주간 가동률 × 주평균 좌석충원율. 티켓 ÷ (운영 세션 × 정원)."
+                d="보유 좌석 중 실제 몇 %가 찼나. = 주간 가동률 × 주평균 좌석 점유율. 티켓 ÷ (운영 세션 × 정원)."
               />
               <Def t="사용/운영" d="그 주 실제 사용 세션 / 운영 가능 세션." />
               <Def t="주평균 인원/세션" d="그 주 등록 티켓 합 ÷ 사용 세션 = 세션당 평균 학생수(정원과 같은 단위)." />
@@ -109,7 +109,7 @@ export default async function RoomsPage({
               <th className="px-4 py-2.5 font-medium">강의실</th>
               <th className="px-4 py-2.5 font-medium">건물</th>
               <th className="px-4 py-2.5 font-medium">주간 강의실 가동률</th>
-              <th className="px-4 py-2.5 text-right font-medium">주평균 좌석충원율</th>
+              <th className="px-4 py-2.5 text-right font-medium">주평균 좌석 점유율</th>
               <th className="px-4 py-2.5 font-medium">종합 충원율</th>
               <th className="px-4 py-2.5 text-right font-medium">사용/운영</th>
               <th className="px-4 py-2.5 text-right font-medium">주평균 인원/세션</th>

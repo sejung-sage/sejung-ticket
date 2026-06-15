@@ -43,7 +43,7 @@ export type RoomSessionUtil = {
   tickets: number;
   capacity: number | null;
   m1: number | null; // 세션 가동률 = 사용/운영
-  m2: number | null; // 세션 내 좌석 충원율 = 티켓/(사용×정원)
+  m2: number | null; // 세션 내 좌석 점유율 = 티켓/(사용×정원)
   m3: number | null; // 종합 좌석 충원율 = 티켓/(운영×정원)
   exception_sessions: number; // 보강(평일 비저녁) 세션 — 가동률 제외
   exception_tickets: number; // 보강 세션 티켓 수
