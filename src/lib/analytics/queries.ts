@@ -101,6 +101,7 @@ export async function getBuildingPeriod(
     p_from: filters.from ?? null,
     p_to: filters.to ?? null,
     p_building: filters.building ?? null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_building_period 실패: ${error.message}`);
   return (data ?? []) as BuildingPeriod[];
@@ -118,14 +119,34 @@ export async function getBuildingTrend(
   return (data ?? []) as BuildingTrend[];
 }
 
+/** 분원별 관·계약 구조 (분원/관 선택 옵션용). dim_lease distinct. */
+export async function getLeaseHierarchy(): Promise<{ branch: string; building: string }[]> {
+  const { data, error } = await analyticsDb()
+    .from("dim_lease")
+    .select("branch, building")
+    .order("branch")
+    .order("building");
+  if (error) throw new Error(`dim_lease 계층 조회 실패: ${error.message}`);
+  const seen = new Set<string>();
+  const out: { branch: string; building: string }[] = [];
+  for (const r of (data ?? []) as { branch: string; building: string }[]) {
+    const k = `${r.branch}|${r.building}`;
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(r);
+    }
+  }
+  return out;
+}
+
 /** 관 안의 계약(층)별 비용 — 드릴다운용. 18행 안팎이라 직접 fetch 안전. */
-export async function getLeaseLines(): Promise<LeaseLine[]> {
+export async function getLeaseLines(branch = "대치"): Promise<LeaseLine[]> {
   const { data, error } = await analyticsDb()
     .from("dim_lease")
     .select(
       "building, lease_label, building_name, area_py, rent_monthly, deposit, maintenance, lease_from, lease_to, note",
     )
-    .eq("branch", "대치")
+    .eq("branch", branch)
     .order("building")
     .order("sort_order");
   if (error) throw new Error(`dim_lease 조회 실패: ${error.message}`);

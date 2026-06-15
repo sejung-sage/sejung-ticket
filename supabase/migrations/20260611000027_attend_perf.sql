@@ -71,8 +71,10 @@ grant select on analytics.mv_room_daily to anon, authenticated, service_role;
 
 -- 4) dash_building_period: att 를 mv_room_daily 에서 (vw_sessions 의존 제거)
 drop function if exists analytics.dash_building_period(date, date, text);
+drop function if exists analytics.dash_building_period(date, date, text, text);
 create function analytics.dash_building_period(
-  p_from date default null, p_to date default null, p_building text default null
+  p_from date default null, p_to date default null, p_building text default null,
+  p_branch text default '대치'  -- 분원: 대치/송도/반포/방배
 )
 returns table (
   building text, rooms bigint, capacity bigint,
@@ -83,7 +85,7 @@ returns table (
 ) language sql stable as $$
   with bld as (
     select distinct building from analytics.dim_lease
-    where branch = '대치' and (p_building is null or building = p_building)
+    where branch = p_branch and (p_building is null or building = p_building)
   ),
   rd as (
     select building,
@@ -112,7 +114,7 @@ returns table (
     select split_part(classroom, ' ', 1) as building,
       sum(class_amount_per_session)::bigint as revenue
     from public.aca_tickets
-    where branch = '대치' and classroom is not null and class_date <> '2050-01-01'
+    where branch = p_branch and classroom is not null and class_date <> '2050-01-01'
       and (p_from is null or class_date >= p_from)
       and (p_to is null or class_date <= p_to)
       and (p_building is null or split_part(classroom, ' ', 1) = p_building)
@@ -120,13 +122,13 @@ returns table (
   ),
   cap as (
     select building, sum(capacity)::bigint as cap
-    from analytics.dim_classroom where branch = '대치' group by building
+    from analytics.dim_classroom where branch = p_branch group by building
   ),
   lease as (
     select building,
       sum(area_py)::bigint as area_py, sum(rent_monthly)::bigint as rent_monthly,
       sum(deposit)::bigint as deposit, sum(maintenance)::bigint as maintenance
-    from analytics.dim_lease where branch = '대치' group by building
+    from analytics.dim_lease where branch = p_branch group by building
   ),
   prd as (  -- 기간 개월수(둘 다 지정됐을 때만; from~to는 1일~말일 정렬이라 정수 개월)
     select case when p_from is not null and p_to is not null
@@ -154,5 +156,5 @@ returns table (
   order by rev_per_rent desc nulls last
 $$;
 
-grant execute on function analytics.dash_building_period(date, date, text)
+grant execute on function analytics.dash_building_period(date, date, text, text)
   to anon, authenticated, service_role;

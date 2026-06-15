@@ -1,5 +1,10 @@
 import { FilterBar } from "@/app/_components/FilterBar";
-import { getBuildingPeriod, getFilterOptions, getLeaseLines } from "@/lib/analytics/queries";
+import {
+  getBuildingPeriod,
+  getFilterOptions,
+  getLeaseHierarchy,
+  getLeaseLines,
+} from "@/lib/analytics/queries";
 import { BuildingFinanceTable } from "./BuildingFinanceTable";
 
 export const metadata = { title: "관별 수익성" };
@@ -14,23 +19,29 @@ function lastDay(ym: string) {
 export default async function BuildingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; building?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; building?: string; branch?: string }>;
 }) {
   const sp = await searchParams;
-  const options = await getFilterOptions();
+  const [options, hierarchy] = await Promise.all([getFilterOptions(), getLeaseHierarchy()]);
   const today = todayISO();
   const maxData = options.max_date ?? today;
+
+  // 분원: 임대 데이터가 있는 분원 목록. 기본 대치.
+  const branches = [...new Set(hierarchy.map((h) => h.branch))];
+  const branch = sp.branch && branches.includes(sp.branch) ? sp.branch : "대치";
+  const branchBuildings = hierarchy.filter((h) => h.branch === branch).map((h) => h.building);
 
   // 기본 기간: 최근 데이터 월의 1일~말일 (월 단위 기본).
   // 들어온 from/to는 항상 해당 월 1일~말일로 스냅 — 옛(일 단위) URL이 남아 있어도 풀먼스로 정규화.
   const endMonth = (maxData < today ? maxData : today).slice(0, 7);
   const to = lastDay((sp.to || lastDay(endMonth)).slice(0, 7));
   const from = firstDay((sp.from || firstDay(endMonth)).slice(0, 7));
-  const building = sp.building || undefined;
+  // 관(건물) 필터는 선택 분원에 속할 때만 적용 (분원 바뀌면 무시).
+  const building = sp.building && branchBuildings.includes(sp.building) ? sp.building : undefined;
 
   const [rows, leases] = await Promise.all([
-    getBuildingPeriod({ from, to, building }),
-    getLeaseLines(),
+    getBuildingPeriod({ from, to, building, branch }),
+    getLeaseLines(branch),
   ]);
 
   return (
@@ -38,7 +49,7 @@ export default async function BuildingsPage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            관별 수익성 <span className="text-zinc-400">·</span> 대치
+            관별 수익성 <span className="text-zinc-400">·</span> {branch}
           </h1>
           <p className="mt-1 text-base text-zinc-600">
             관(임대차 계약 단위)별 <b>매출</b>과 <b>임대료</b>를 비교하고, <b>가동률</b>·<b>좌석 점유율</b>
@@ -62,8 +73,10 @@ export default async function BuildingsPage({
         <FilterBar
           from={from}
           to={to}
+          branch={branch}
+          branches={branches}
           building={building}
-          buildings={options.buildings}
+          buildings={branchBuildings}
           min={options.min_date ?? undefined}
           max={options.max_date ?? undefined}
         />
@@ -73,7 +86,8 @@ export default async function BuildingsPage({
         <BuildingFinanceTable rows={rows} leases={leases} period={{ from, to }} />
       </div>
       <p className="mt-3 text-xs text-zinc-400">
-        대치 전용(타 지점은 추후 데이터 적재 후) · 입시관·학종관은 강의 usage가 없어 임대료만 표시.
+        매출·가동률은 현재 대치만 집계 — 송도·반포·방배는 임대료만 표시(원천 데이터 적재 후 채워짐) ·
+        대치 입시관·학종관도 강의 usage가 없어 임대료만 표시.
       </p>
     </main>
   );

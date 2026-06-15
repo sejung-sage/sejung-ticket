@@ -9,6 +9,8 @@ import { LoadingOverlay } from "./LoadingOverlay";
 export function FilterBar({
   from,
   to,
+  branch,
+  branches,
   building,
   buildings,
   min,
@@ -16,6 +18,8 @@ export function FilterBar({
 }: {
   from: string;
   to: string;
+  branch?: string;
+  branches?: string[];
   building?: string;
   buildings: string[];
   min?: string;
@@ -76,6 +80,22 @@ export function FilterBar({
   return (
     <>
     <div className="flex flex-wrap items-center gap-2 text-sm">
+      {branches && branches.length > 1 && (
+        <>
+          <select
+            value={branch ?? ""}
+            onChange={(e) => update({ branch: e.target.value, building: "" })}
+            className="rounded-md border border-zinc-300 px-2.5 py-1.5 font-medium focus:border-emerald-500 focus:outline-none"
+          >
+            {branches.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+          <span className="mx-1 h-5 w-px bg-zinc-200" />
+        </>
+      )}
       <div className="flex items-center gap-1">
         {presets.map((p) => (
           <button

@@ -5,6 +5,7 @@
 export type DashboardFilters = {
   from?: string | null; // 'YYYY-MM-DD' 포함
   to?: string | null; // 'YYYY-MM-DD' 포함
+  branch?: string | null; // 분원 (대치/송도/반포/방배). 미지정 시 대치
   building?: string | null; // 관 (예: '대치관')
   classroom?: string | null; // 강의실 (예: '대치관 201')
   dow?: number[] | null; // 요일 1=월 … 7=일
