@@ -5,6 +5,21 @@ import { importParsed, type ImportItem, type ImportResult } from "./actions";
 
 const DOW: Record<string, number> = { 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6, 일: 7 };
 
+// 파일명엔 연도가 없으므로(예: "금 12_19") 요일로 연도를 역추정한다.
+// 같은 월/일이라도 요일이 일치하는 해는 최근 ±2년 내에서 유일.
+function inferDate(targetDow: number, mm: string, dd: string): string | null {
+  const thisYear = new Date().getFullYear();
+  for (const y of [thisYear, thisYear - 1, thisYear + 1, thisYear - 2]) {
+    const d = new Date(`${y}-${mm}-${dd}T00:00:00Z`);
+    const dow = ((d.getUTCDay() + 6) % 7) + 1; // 1=월..7=일
+    // 잘못된 날짜(예: 2/29 비윤년)는 롤오버되므로 월/일 보존 확인
+    if (d.getUTCMonth() + 1 === Number(mm) && d.getUTCDate() === Number(dd) && dow === targetDow) {
+      return `${y}-${mm}-${dd}`;
+    }
+  }
+  return null;
+}
+
 export function UploadForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
@@ -16,7 +31,6 @@ export function UploadForm() {
     setResults(null);
     const log: string[] = [];
     const items: ImportItem[] = [];
-    const year = new Date().getFullYear();
 
     for (const f of files) {
       const name = f.name.normalize("NFC");
@@ -26,7 +40,12 @@ export function UploadForm() {
         setLogs([...log]);
         continue;
       }
-      const source_date = `${year}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+      const source_date = inferDate(DOW[m[1]], m[2].padStart(2, "0"), m[3].padStart(2, "0"));
+      if (!source_date) {
+        log.push(`❌ ${name}: 요일(${m[1]})에 맞는 연도를 못 찾음 — 파일명 날짜/요일 확인`);
+        setLogs([...log]);
+        continue;
+      }
       try {
         const res = await fetch("/api/parse-timetable", { method: "POST", body: f });
         const j = await res.json();
