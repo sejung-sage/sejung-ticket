@@ -13,7 +13,7 @@ export default async function UploadPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">시간표 업로드</h1>
         <p className="mt-1 text-base text-zinc-600">
-          한글(.hwp) 시간표를 올리면 강의실 미기록 수업이 (교사+시간) 매칭으로 자동 채워집니다.
+          한글(.hwp/.hwpx) 시간표를 올리면 강의실 미기록 수업이 (교사+시간) 매칭으로 자동 채워집니다.
           올린 날짜 ±14일 반영.
         </p>
       </div>

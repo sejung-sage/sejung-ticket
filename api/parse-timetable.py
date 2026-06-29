@@ -1,7 +1,8 @@
-# Vercel Python 서버리스 함수: HWP(시간표) 업로드 → 칸(강의실·교사·시간) JSON
-# 표는 rowspan/colspan 반영 그리드 매핑으로 각 칸의 실제 열(강의실)을 찾는다.
+# Vercel Python 서버리스 함수: HWP/HWPX(시간표) 업로드 → 칸(강의실·교사·시간) JSON
+# 구 HWP(바이너리 OLE)는 hwp5html→HTML 표를 rowspan/colspan 그리드로 매핑.
+# HWPX(zip+OWPML XML)는 셀이 colAddr/rowAddr를 직접 가지므로 좌표로 바로 매핑.
 from http.server import BaseHTTPRequestHandler
-import json, tempfile, os, sys, glob, re, html
+import json, tempfile, os, sys, glob, re, html, zipfile, io
 
 TIME_RE = re.compile(r"([ap]?\d{1,2}(?::\d{2})?\s*[.~\-]+\s*\d{1,2}(?::\d{2})?)")
 TEACHER_RE = re.compile(r"([가-힣]{2,4})\s*T")
@@ -10,6 +11,22 @@ TEACHER_RE = re.compile(r"([가-힣]{2,4})\s*T")
 def celltext(c):
     x = re.sub(r"<[^>]+>", " ", c)
     return re.sub(r"\s+", " ", html.unescape(x)).strip()
+
+
+def make_cell(room, txt):
+    """강의실(헤더)+칸 텍스트 → 강좌 칸. 교사 없으면 None(빈/제목 칸 제외)."""
+    if not room or not txt:
+        return None
+    teacher = TEACHER_RE.findall(txt)
+    if not teacher:
+        return None
+    time = TIME_RE.findall(txt)
+    return {
+        "room_raw": room,
+        "teacher": teacher[0],
+        "time_raw": time[0].replace(" ", "") if time else None,
+        "detail": txt[:120],
+    }
 
 
 def parse_html(t):
@@ -39,21 +56,36 @@ def parse_html(t):
                 col += cs
         headers = {col: grid.get((0, col), "") for col in range(ncols)}
         for (ri, col), txt in grid.items():
-            if ri == 0 or not txt:
+            if ri == 0:
                 continue
-            room = headers.get(col, "")
-            if not room:
+            cell = make_cell(headers.get(col, ""), txt)
+            if cell:
+                out.append(cell)
+    return out
+
+
+def parse_hwpx_xml(xml):
+    out = []
+    for tb in re.findall(r"<hp:tbl\b.*?</hp:tbl>", xml, re.S):
+        headers = {}
+        cells = {}
+        for tc in re.findall(r"<hp:tc\b.*?</hp:tc>", tb, re.S):
+            addr = re.search(r'<hp:cellAddr[^>]*colAddr="(\d+)"[^>]*rowAddr="(\d+)"', tc)
+            if not addr:
                 continue
-            teacher = TEACHER_RE.findall(txt)
-            if not teacher:
-                continue
-            time = TIME_RE.findall(txt)
-            out.append({
-                "room_raw": room,
-                "teacher": teacher[0],
-                "time_raw": time[0].replace(" ", "") if time else None,
-                "detail": txt[:120],
-            })
+            col, row = int(addr.group(1)), int(addr.group(2))
+            span = re.search(r'<hp:cellSpan[^>]*colSpan="(\d+)"', tc)
+            cspan = int(span.group(1)) if span else 1
+            txt = celltext(" ".join(re.findall(r"<hp:t\b[^>]*>(.*?)</hp:t>", tc, re.S)))
+            if row == 0:
+                for c in range(col, col + cspan):
+                    headers[c] = txt
+            else:
+                cells[(row, col)] = txt
+        for (row, col), txt in cells.items():
+            cell = make_cell(headers.get(col, ""), txt)
+            if cell:
+                out.append(cell)
     return out
 
 
@@ -73,12 +105,24 @@ def parse_hwp(data: bytes):
     return parse_html(open(xhtml[0], encoding="utf-8").read())
 
 
+def parse_hwpx(data: bytes):
+    z = zipfile.ZipFile(io.BytesIO(data))
+    names = sorted(n for n in z.namelist() if re.match(r"Contents/section\d+\.xml$", n))
+    xml = "".join(z.read(n).decode("utf-8") for n in names)
+    return parse_hwpx_xml(xml)
+
+
+def parse(data: bytes):
+    # HWPX는 zip(PK\x03\x04), 구 HWP는 OLE 복합문서 → 시그니처로 분기
+    return parse_hwpx(data) if data[:2] == b"PK" else parse_hwp(data)
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             n = int(self.headers.get("Content-Length", 0))
             data = self.rfile.read(n)
-            cells = parse_hwp(data)
+            cells = parse(data)
             body = json.dumps({"cells": cells}, ensure_ascii=False).encode("utf-8")
             code = 200
         except Exception as e:

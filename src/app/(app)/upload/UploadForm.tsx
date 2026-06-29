@@ -58,12 +58,12 @@ export function UploadForm() {
       <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center hover:border-emerald-400">
         <span className="text-3xl">⬆</span>
         <span className="text-base font-medium text-zinc-700">
-          한글(.hwp) 시간표 파일 선택 (여러 개 가능)
+          한글(.hwp/.hwpx) 시간표 파일 선택 (여러 개 가능)
         </span>
         <span className="text-sm text-zinc-500">파일명 형식: "월 6_8.hwp" (요일 + 월_일)</span>
         <input
           type="file"
-          accept=".hwp"
+          accept=".hwp,.hwpx"
           multiple
           className="hidden"
           onChange={(e) => {
