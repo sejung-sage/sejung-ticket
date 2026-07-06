@@ -1,4 +1,5 @@
 import { FilterBar } from "@/app/_components/FilterBar";
+import { getBranch } from "@/lib/branch";
 import {
   getBuildingPeriod,
   getFilterOptions,
@@ -19,16 +20,18 @@ function lastDay(ym: string) {
 export default async function BuildingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; building?: string; branch?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; building?: string }>;
 }) {
   const sp = await searchParams;
-  const [options, hierarchy] = await Promise.all([getFilterOptions(), getLeaseHierarchy()]);
+  const [options, hierarchy, branch] = await Promise.all([
+    getFilterOptions(),
+    getLeaseHierarchy(),
+    getBranch(),
+  ]);
   const today = todayISO();
   const maxData = options.max_date ?? today;
 
-  // 분원: 임대 데이터가 있는 분원 목록. 기본 대치.
-  const branches = [...new Set(hierarchy.map((h) => h.branch))];
-  const branch = sp.branch && branches.includes(sp.branch) ? sp.branch : "대치";
+  // 분원은 사이드바 전역 선택기(쿠키)로 통일. 관(건물) 목록은 선택 분원 기준.
   const branchBuildings = hierarchy.filter((h) => h.branch === branch).map((h) => h.building);
 
   // 기본 기간: 최근 데이터 월의 1일~말일 (월 단위 기본).
@@ -73,8 +76,6 @@ export default async function BuildingsPage({
         <FilterBar
           from={from}
           to={to}
-          branch={branch}
-          branches={branches}
           building={building}
           buildings={branchBuildings}
           min={options.min_date ?? undefined}

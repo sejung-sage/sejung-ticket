@@ -1,4 +1,6 @@
 import { DateFilter } from "@/app/_components/DateFilter";
+import { NoUsageNotice } from "@/app/_components/NoUsageNotice";
+import { getBranch, hasUsage } from "@/lib/branch";
 import {
   getDaechiRooms,
   getDaySessions,
@@ -39,6 +41,17 @@ export default async function Page({
   searchParams: Promise<{ date?: string | string[] }>;
 }) {
   const sp = await searchParams;
+  const branch = await getBranch();
+  if (!hasUsage(branch)) {
+    return (
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+          강의실 가동률 <span className="text-zinc-400">·</span> {branch}
+        </h1>
+        <NoUsageNotice branch={branch} />
+      </main>
+    );
+  }
   const today = todayISO();
   const dateParam = typeof sp.date === "string" ? sp.date : undefined;
 

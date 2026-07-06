@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
+import { BranchSelect } from "./BranchSelect";
 import { LoadingOverlay } from "./LoadingOverlay";
 
 /** 클릭한 Link의 이동 대기 상태에 맞춰 전체 화면 오버레이를 띄운다.
@@ -23,14 +24,14 @@ const NAV: { href: string; label: string; icon: string; muted?: boolean }[] = [
   { href: "/upload", label: "시간표 업로드", icon: "⬆" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ branch, branches }: { branch: string; branches: string[] }) {
   const pathname = usePathname();
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50">
       <div className="border-b border-zinc-200 px-5 py-4">
         <div className="text-lg font-bold text-zinc-900">세정학원</div>
-        <div className="text-sm text-zinc-600">강의실 가동률 · 대치</div>
+        <BranchSelect current={branch} branches={branches} />
       </div>
       <nav className="flex flex-1 flex-col gap-1.5 p-3">
         {NAV.map((item) => {

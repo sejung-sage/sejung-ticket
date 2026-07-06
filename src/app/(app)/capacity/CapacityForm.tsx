@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import type { GridRoom } from "@/lib/analytics/types";
 import { updateCapacities, type CapacityState } from "./actions";
 
-export function CapacityForm({ rooms }: { rooms: GridRoom[] }) {
+export function CapacityForm({ rooms, branch }: { rooms: GridRoom[]; branch: string }) {
   const [state, action, pending] = useActionState(updateCapacities, {} as CapacityState);
 
   // 건물별 그룹
@@ -16,6 +16,7 @@ export function CapacityForm({ rooms }: { rooms: GridRoom[] }) {
 
   return (
     <form action={action}>
+      <input type="hidden" name="branch" value={branch} />
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {[...groups.entries()].map(([building, list]) => (
           <div key={building} className="rounded-lg border border-zinc-200">

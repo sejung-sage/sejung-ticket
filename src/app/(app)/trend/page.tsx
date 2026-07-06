@@ -1,3 +1,5 @@
+import { NoUsageNotice } from "@/app/_components/NoUsageNotice";
+import { getBranch, hasUsage } from "@/lib/branch";
 import { getBuildingTrend } from "@/lib/analytics/queries";
 import { BuildingTrendChart } from "./BuildingTrendChart";
 
@@ -5,6 +7,17 @@ export const metadata = { title: "가동률 추이" };
 export const dynamic = "force-dynamic"; // DB 실시간 집계 — 빌드타임 정적화 방지
 
 export default async function TrendPage() {
+  const branch = await getBranch();
+  if (!hasUsage(branch)) {
+    return (
+      <main className="px-6 py-8">
+        <h1 className="text-2xl font-bold tracking-tight">
+          가동률 추이 <span className="text-zinc-400">·</span> {branch}
+        </h1>
+        <NoUsageNotice branch={branch} />
+      </main>
+    );
+  }
   const trend = await getBuildingTrend();
 
   return (

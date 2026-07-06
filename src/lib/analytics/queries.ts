@@ -157,10 +157,15 @@ export async function getLeaseLines(branch = "대치"): Promise<LeaseLine[]> {
 
 /** 그리드 세로축: 대치 강의실 목록(정렬순). 그날 비어 있어도 행으로 노출. */
 export async function getDaechiRooms(): Promise<GridRoom[]> {
+  return getRoomsByBranch("대치");
+}
+
+/** 분원별 강의실 목록(정렬순). 정원 관리 등 분원 전환용. */
+export async function getRoomsByBranch(branch: string): Promise<GridRoom[]> {
   const { data, error } = await analyticsDb()
     .from("dim_classroom")
     .select("classroom, building, room, capacity")
-    .eq("branch", "대치")
+    .eq("branch", branch)
     .eq("active", true)
     .order("sort_order");
   if (error) throw new Error(`dim_classroom 조회 실패: ${error.message}`);

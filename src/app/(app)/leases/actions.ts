@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { BRANCHES } from "@/lib/branch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type LeaseState = { saved?: number; error?: string };
@@ -28,6 +29,9 @@ const dateOrNull = (raw: string) => (raw.trim() === "" ? null : raw.trim());
 export async function updateLeases(_prev: LeaseState, formData: FormData): Promise<LeaseState> {
   const db = createAdminClient().schema("analytics");
 
+  const branchRaw = String(formData.get("branch") ?? "대치");
+  const branch = (BRANCHES as readonly string[]).includes(branchRaw) ? branchRaw : "대치";
+
   // 1) 폼을 idx별로 모음
   const byIdx = new Map<string, Record<string, string>>();
   for (const [key, value] of formData.entries()) {
@@ -42,7 +46,7 @@ export async function updateLeases(_prev: LeaseState, formData: FormData): Promi
   const { data: current, error } = await db
     .from("dim_lease")
     .select("building, lease_label, area_py, rent_monthly, deposit, maintenance, lease_from, lease_to")
-    .eq("branch", "대치");
+    .eq("branch", branch);
   if (error) return { error: `현재값 조회 실패: ${error.message}` };
   const curMap = new Map(current?.map((r) => [`${r.building}${r.lease_label}`, r]) ?? []);
 
@@ -84,7 +88,7 @@ export async function updateLeases(_prev: LeaseState, formData: FormData): Promi
     const { error: e } = await db
       .from("dim_lease")
       .update(u.values)
-      .eq("branch", "대치")
+      .eq("branch", branch)
       .eq("building", u.building)
       .eq("lease_label", u.lease_label);
     if (e) return { error: `${u.building} ${u.lease_label} 저장 실패: ${e.message}` };

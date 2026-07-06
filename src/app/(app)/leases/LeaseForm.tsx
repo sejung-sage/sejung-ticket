@@ -6,7 +6,7 @@ import { updateLeases, type LeaseState } from "./actions";
 
 const comma = (v: number | null) => (v == null ? "" : v.toLocaleString());
 
-export function LeaseForm({ leases }: { leases: LeaseLine[] }) {
+export function LeaseForm({ leases, branch }: { leases: LeaseLine[]; branch: string }) {
   const [state, action, pending] = useActionState(updateLeases, {} as LeaseState);
 
   // 건물(관)별 그룹 — 평탄 인덱스로 폼 키를 부여.
@@ -18,6 +18,7 @@ export function LeaseForm({ leases }: { leases: LeaseLine[] }) {
 
   return (
     <form action={action}>
+      <input type="hidden" name="branch" value={branch} />
       <div className="grid grid-cols-1 gap-5">
         {[...groups.entries()].map(([building, list]) => (
           <div key={building} className="overflow-x-auto rounded-lg border border-zinc-200">

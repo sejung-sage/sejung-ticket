@@ -1,5 +1,7 @@
+import { NoUsageNotice } from "@/app/_components/NoUsageNotice";
 import { SortControl } from "@/app/_components/SortControl";
 import { WeekBar } from "@/app/_components/WeekBar";
+import { getBranch, hasUsage } from "@/lib/branch";
 import { fmtPct1 } from "@/lib/analytics/grid";
 import { getFilterOptions, getRoomSessionUtil } from "@/lib/analytics/queries";
 import type { RoomSessionUtil } from "@/lib/analytics/types";
@@ -34,6 +36,17 @@ export default async function RoomsPage({
   searchParams: Promise<{ week?: string; building?: string; sort?: string }>;
 }) {
   const sp = await searchParams;
+  const branch = await getBranch();
+  if (!hasUsage(branch)) {
+    return (
+      <main className="px-6 py-8">
+        <h1 className="text-2xl font-bold tracking-tight">
+          강의실별 가동률 <span className="text-zinc-400">·</span> {branch}
+        </h1>
+        <NoUsageNotice branch={branch} />
+      </main>
+    );
+  }
   const options = await getFilterOptions();
   const today = todayISO();
   const maxData = options.max_date ?? today;

@@ -1,21 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { BRANCHES } from "@/lib/branch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CapacityState = { saved?: number; error?: string };
 
-/** 변경된 강의실 정원만 dim_classroom 에 반영(대치). 입력칸 name = `cap:<classroom>`. */
+/** 변경된 강의실 정원만 dim_classroom 에 반영(선택 분원). 입력칸 name = `cap:<classroom>`. */
 export async function updateCapacities(
   _prev: CapacityState,
   formData: FormData,
 ): Promise<CapacityState> {
   const db = createAdminClient().schema("analytics");
 
+  const branchRaw = String(formData.get("branch") ?? "대치");
+  const branch = (BRANCHES as readonly string[]).includes(branchRaw) ? branchRaw : "대치";
+
   const { data: current, error } = await db
     .from("dim_classroom")
     .select("classroom, capacity")
-    .eq("branch", "대치");
+    .eq("branch", branch);
   if (error) return { error: `현재값 조회 실패: ${error.message}` };
 
   const curMap = new Map((current ?? []).map((r) => [r.classroom, r.capacity]));
@@ -35,7 +39,7 @@ export async function updateCapacities(
     const { error: e } = await db
       .from("dim_classroom")
       .update({ capacity: u.capacity })
-      .eq("branch", "대치")
+      .eq("branch", branch)
       .eq("classroom", u.classroom);
     if (e) return { error: `${u.classroom} 저장 실패: ${e.message}` };
   }
