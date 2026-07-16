@@ -6,9 +6,9 @@ import { cookies } from "next/headers";
 export const BRANCHES = ["대치", "송도", "반포", "방배"] as const;
 export type Branch = (typeof BRANCHES)[number];
 
-/** 강의실 사용기록(가동률·좌석 점유율)이 있는 분원. 원천 aca_tickets.classroom
- *  이 채워진 곳만 — 현재 대치뿐. 타 분원은 정원·임대만 참고용. */
-const USAGE_BRANCHES: readonly string[] = ["대치"];
+/** 가동률 집계가 가능한 분원 = analytics.timetable에 시간표가 적재된 곳.
+ *  대치(HWP 업로드) + 반포(XLSX 적재). 송도·방배는 정원·임대만 참고용. */
+const USAGE_BRANCHES: readonly string[] = ["대치", "반포"];
 
 export const BRANCH_COOKIE = "sj_branch";
 

@@ -2,11 +2,11 @@ import { DateFilter } from "@/app/_components/DateFilter";
 import { NoUsageNotice } from "@/app/_components/NoUsageNotice";
 import { getBranch, hasUsage } from "@/lib/branch";
 import {
-  getDaechiRooms,
   getDaySessions,
   getDefaultGridDate,
   getFilterOptions,
   getKpis,
+  getRoomsByBranch,
   getSeatUtil,
   getDayOpSessions,
   getVacationPeriods,
@@ -55,14 +55,14 @@ export default async function Page({
   const today = todayISO();
   const dateParam = typeof sp.date === "string" ? sp.date : undefined;
 
-  const options = await getFilterOptions();
-  const date = dateParam ?? (await getDefaultGridDate(today)) ?? options.max_date ?? today;
+  const options = await getFilterOptions(branch);
+  const date = dateParam ?? (await getDefaultGridDate(today, branch)) ?? options.max_date ?? today;
 
   const [rooms, sessions, kpis, seat, opPerRoom, vacations] = await Promise.all([
-    getDaechiRooms(),
-    getDaySessions(date),
-    getKpis({ from: date, to: date }),
-    getSeatUtil({ from: date, to: date }),
+    getRoomsByBranch(branch),
+    getDaySessions(date, branch),
+    getKpis({ from: date, to: date, branch }),
+    getSeatUtil({ from: date, to: date, branch }),
     getDayOpSessions(date),
     getVacationPeriods(),
   ]);
@@ -90,7 +90,7 @@ export default async function Page({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            강의실 가동률 <span className="text-zinc-400">·</span> 대치
+            강의실 가동률 <span className="text-zinc-400">·</span> {branch}
           </h1>
           <p className="mt-1 text-base text-zinc-600">
             강의실 × 아침·오후·저녁 — 칸마다 <b>출석/등록/정원</b>과 <b>출석율</b>(출석/등록)·<b>좌석 점유율</b>(등록/정원).

@@ -25,7 +25,7 @@ function analyticsDb() {
   return createAdminClient().schema("analytics");
 }
 
-/** dash_kpis / dash_trend 공통 필터 인자 (null = 전체). */
+/** dash_kpis / dash_trend 공통 필터 인자 (null = 전체). 분원 기본 대치. */
 function filterArgs(f: DashboardFilters) {
   return {
     p_from: f.from ?? null,
@@ -33,6 +33,7 @@ function filterArgs(f: DashboardFilters) {
     p_building: f.building ?? null,
     p_classroom: f.classroom ?? null,
     p_dow: f.dow && f.dow.length > 0 ? f.dow : null,
+    p_branch: f.branch ?? "대치",
   };
 }
 
@@ -46,9 +47,9 @@ const EMPTY_KPIS: Kpis = {
   room_day_count: 0,
 };
 
-/** 필터 드롭다운용 건물/강의실 목록 + 데이터 가용 기간. */
-export async function getFilterOptions(): Promise<FilterOptions> {
-  const { data, error } = await analyticsDb().rpc("dash_filter_options");
+/** 필터 드롭다운용 건물/강의실 목록 + 데이터 가용 기간. 분원별. */
+export async function getFilterOptions(branch = "대치"): Promise<FilterOptions> {
+  const { data, error } = await analyticsDb().rpc("dash_filter_options", { p_branch: branch });
   if (error) throw new Error(`dash_filter_options 실패: ${error.message}`);
   const row = data?.[0];
   return {
@@ -88,6 +89,7 @@ export async function getBuildingUtilization(
     p_to: filters.to ?? null,
     p_classroom: filters.classroom ?? null,
     p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_building 실패: ${error.message}`);
   return data ?? [];
@@ -114,6 +116,7 @@ export async function getBuildingTrend(
   const { data, error } = await analyticsDb().rpc("dash_building_trend", {
     p_from: filters.from ?? null,
     p_to: filters.to ?? null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_building_trend 실패: ${error.message}`);
   return (data ?? []) as BuildingTrend[];
@@ -155,12 +158,7 @@ export async function getLeaseLines(branch = "대치"): Promise<LeaseLine[]> {
 
 // ── 강의실×시간 그리드 (하루) ─────────────────────────────────────────
 
-/** 그리드 세로축: 대치 강의실 목록(정렬순). 그날 비어 있어도 행으로 노출. */
-export async function getDaechiRooms(): Promise<GridRoom[]> {
-  return getRoomsByBranch("대치");
-}
-
-/** 분원별 강의실 목록(정렬순). 정원 관리 등 분원 전환용. */
+/** 분원별 강의실 목록(정렬순). 그리드 세로축·정원 관리 등 분원 전환용. */
 export async function getRoomsByBranch(branch: string): Promise<GridRoom[]> {
   const { data, error } = await analyticsDb()
     .from("dim_classroom")
@@ -172,14 +170,15 @@ export async function getRoomsByBranch(branch: string): Promise<GridRoom[]> {
   return data ?? [];
 }
 
-/** 특정 날짜의 모든 세션(대치). 하루치라 작음(1000행 캡 안전). */
-export async function getDaySessions(date: string): Promise<GridSession[]> {
+/** 특정 날짜×분원의 모든 세션. 하루치라 작음(1000행 캡 안전). */
+export async function getDaySessions(date: string, branch = "대치"): Promise<GridSession[]> {
   const { data, error } = await analyticsDb()
     .from("vw_sessions")
     .select(
       "classroom, class_name, teacher_name, start_min, end_min, student_count, capacity, paid_count, unpaid_count, absent_count",
     )
     .eq("class_date", date)
+    .eq("branch", branch)
     .order("classroom")
     .order("start_min");
   if (error) throw new Error(`vw_sessions(일자) 조회 실패: ${error.message}`);
@@ -193,6 +192,7 @@ export async function getSeatUtil(filters: DashboardFilters = {}): Promise<SeatU
     p_to: filters.to ?? null,
     p_building: filters.building ?? null,
     p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_seat_util 실패: ${error.message}`);
   return (
@@ -207,6 +207,7 @@ export async function getRoomUtilization(filters: DashboardFilters = {}): Promis
     p_to: filters.to ?? null,
     p_building: filters.building ?? null,
     p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_room 실패: ${error.message}`);
   return data ?? [];
@@ -219,6 +220,7 @@ export async function getRoomSessionUtil(filters: DashboardFilters = {}): Promis
     p_to: filters.to ?? null,
     p_building: filters.building ?? null,
     p_dow: filters.dow && filters.dow.length > 0 ? filters.dow : null,
+    p_branch: filters.branch ?? "대치",
   });
   if (error) throw new Error(`dash_room_session 실패: ${error.message}`);
   return data ?? [];
@@ -262,11 +264,12 @@ export async function getVacationPeriods(): Promise<
 }
 
 /** notAfter(보통 오늘) 이하에서 세션이 있는 가장 최근 날짜 — 그리드 기본값용. */
-export async function getDefaultGridDate(notAfter: string): Promise<string | null> {
+export async function getDefaultGridDate(notAfter: string, branch = "대치"): Promise<string | null> {
   const { data, error } = await analyticsDb()
     .from("mv_room_daily")
     .select("class_date")
     .lte("class_date", notAfter)
+    .eq("branch", branch)
     .order("class_date", { ascending: false })
     .limit(1);
   if (error) throw new Error(`기본 날짜 조회 실패: ${error.message}`);

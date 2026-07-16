@@ -23,10 +23,10 @@ export default async function BuildingsPage({
   searchParams: Promise<{ from?: string; to?: string; building?: string }>;
 }) {
   const sp = await searchParams;
-  const [options, hierarchy, branch] = await Promise.all([
-    getFilterOptions(),
+  const branch = await getBranch();
+  const [options, hierarchy] = await Promise.all([
+    getFilterOptions(branch),
     getLeaseHierarchy(),
-    getBranch(),
   ]);
   const today = todayISO();
   const maxData = options.max_date ?? today;

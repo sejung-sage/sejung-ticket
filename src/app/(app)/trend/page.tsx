@@ -18,12 +18,12 @@ export default async function TrendPage() {
       </main>
     );
   }
-  const trend = await getBuildingTrend();
+  const trend = await getBuildingTrend({ branch });
 
   return (
     <main className="px-6 py-8">
       <h1 className="text-2xl font-bold tracking-tight">
-        가동률 추이 <span className="text-zinc-400">·</span> 대치
+        가동률 추이 <span className="text-zinc-400">·</span> {branch}
       </h1>
       <p className="mt-1 text-base text-zinc-600">
         월별·관별 <b>좌석 점유율</b>(등록/정원)과 <b>가동률</b>(점유/운영) 추이. 시간표가 올라온

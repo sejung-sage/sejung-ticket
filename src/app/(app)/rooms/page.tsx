@@ -47,7 +47,7 @@ export default async function RoomsPage({
       </main>
     );
   }
-  const options = await getFilterOptions();
+  const options = await getFilterOptions(branch);
   const today = todayISO();
   const maxData = options.max_date ?? today;
 
@@ -59,7 +59,7 @@ export default async function RoomsPage({
   const building = sp.building || undefined;
   const sort = sp.sort || "m3_desc";
 
-  const fetched = await getRoomSessionUtil({ from, to, building });
+  const fetched = await getRoomSessionUtil({ from, to, building, branch });
   const key = (sort.split("_")[0] as "m1" | "m2" | "m3") || "m3";
   const dir = sort.endsWith("asc") ? 1 : -1;
   const rows = [...fetched].sort((a, b) => ((a[key] ?? 0) - (b[key] ?? 0)) * dir);
