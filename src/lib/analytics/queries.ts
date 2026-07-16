@@ -224,13 +224,13 @@ export async function getRoomSessionUtil(filters: DashboardFilters = {}): Promis
   return data ?? [];
 }
 
-/** 시간표 적재 현황 — 날짜별 칸수/강의실매칭 (업로드 탭). */
-export async function getTimetableStatus(): Promise<
+/** 시간표 적재 현황 — 날짜별 칸수/강의실매칭 (업로드 탭). 분원별 분리. */
+export async function getTimetableStatus(branch: string): Promise<
   { source_date: string; weekday: number; cells: number; rooms: number }[]
 > {
   // 집계는 서버(RPC)에서 — timetable 행수가 PostgREST 1000행 캡을 넘으면 클라이언트
   // 집계 시 최근 적재분이 잘려 누락됨.
-  const { data, error } = await analyticsDb().rpc("dash_timetable_status");
+  const { data, error } = await analyticsDb().rpc("dash_timetable_status", { p_branch: branch });
   if (error) throw new Error(`timetable 조회 실패: ${error.message}`);
   return ((data ?? []) as { source_date: string; weekday: number; cells: number; rooms: number }[]).map(
     (r) => ({
