@@ -80,7 +80,7 @@ for (const { orig, nfc } of files) {
 
 // 재적재: 해당 날짜 삭제 후 insert
 const dates = [...new Set(rows.map((r) => r.source_date))];
-await c.query("delete from analytics.timetable where source_date = any($1)", [dates]);
+await c.query("delete from analytics.timetable where source_date = any($1) and branch='대치'", [dates]);
 for (const r of rows) {
   await c.query(
     `insert into analytics.timetable (source_date,weekday,classroom_raw,classroom,teacher,time_norm,detail)
