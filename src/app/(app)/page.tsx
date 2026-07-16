@@ -1,4 +1,5 @@
 import { DateFilter } from "@/app/_components/DateFilter";
+import { DayTimeGrid } from "@/app/_components/DayTimeGrid";
 import { NoUsageNotice } from "@/app/_components/NoUsageNotice";
 import { getBranch, hasUsage } from "@/lib/branch";
 import {
@@ -70,6 +71,8 @@ export default async function Page({
 
   const isPast = date < today;
   const grid = buildGrid(rooms, sessions, isPast);
+  // 반포는 30분 단위 시간표가 정밀해 실제 시간대 타임라인으로 표시 (대치는 3버킷 유지)
+  const useTimeGrid = branch === "반포";
 
   // 세션 모델: 운영 세션 = 주말 3·방학평일 3·학기중평일 1(저녁). 학기중 평일 비저녁(보강)은 제외.
   const dow = new Date(date + "T00:00:00Z").getUTCDay(); // 0=일,6=토
@@ -93,8 +96,17 @@ export default async function Page({
             강의실 가동률 <span className="text-zinc-400">·</span> {branch}
           </h1>
           <p className="mt-1 text-base text-zinc-600">
-            강의실 × 아침·오후·저녁 — 칸마다 <b>출석/등록/정원</b>과 <b>출석율</b>(출석/등록)·<b>좌석 점유율</b>(등록/정원).
-            출석은 과거만 · 미래는 빈칸
+            {useTimeGrid ? (
+              <>
+                강의실 × 실제 시간대 — 세션 블록마다 <b>등록 학생수</b>와 <b>좌석 점유율</b>(등록/정원).
+                블록에 마우스를 올리면 상세.
+              </>
+            ) : (
+              <>
+                강의실 × 아침·오후·저녁 — 칸마다 <b>출석/등록/정원</b>과 <b>출석율</b>(출석/등록)·<b>좌석 점유율</b>(등록/정원).
+                출석은 과거만 · 미래는 빈칸
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -161,6 +173,8 @@ export default async function Page({
           {date} 시간표가 업로드되지 않았습니다. 이 대시보드는 <b>시간표 기반</b>이라,
           시간표를 올린 날짜만 표시됩니다 — <b>시간표 업로드</b> 탭에서 올려주세요.
         </p>
+      ) : useTimeGrid ? (
+        <DayTimeGrid rooms={rooms} sessions={sessions} isPast={isPast} />
       ) : (
         <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
           <div className="grid min-w-max" style={{ gridTemplateColumns: "180px repeat(3, minmax(150px, 1fr))" }}>
@@ -239,8 +253,9 @@ export default async function Page({
       )}
 
       <p className="mt-3 text-sm text-zinc-500">
-        강의실 {grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=좌석 점유율(등록/정원) ·
-        출석율=출석/등록, 출석=등록−결석(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외
+        {useTimeGrid
+          ? `강의실 ${grid.totals.rooms}개 · 블록 = 세션(시간표 기준) · 색=좌석 점유율(등록/정원) · 보라=등록 없는 클리닉/보강`
+          : `강의실 ${grid.totals.rooms}개 · 칸 = 그 타임 세션 합산 · 색=좌석 점유율(등록/정원) · 출석율=출석/등록, 출석=등록−결석(대치는 결석만 기록) · 시간 미파싱 세션은 타임 배치 제외`}
       </p>
     </main>
   );
